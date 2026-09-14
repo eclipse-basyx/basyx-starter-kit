@@ -47,7 +47,7 @@
     "eslint-plugin-vue": "^10.9.1",
     "happy-dom": "^20.0.10",
     "pinia": "^3.0.4",
-    "pnpm": "11.5.2",
+    "pnpm": "12.4.1",
     "prettier": "^3.8.3",
     "sass": "^1.100.0",
     "typescript": "^6.0.3",
