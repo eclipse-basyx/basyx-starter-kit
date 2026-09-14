@@ -1,0 +1,1197 @@
+import { ref, computed, shallowRef, toRef, watch, createVNode, mergeProps, createElementVNode, Fragment, createTextVNode, useId, toValue, inject, provide, onScopeDispose, normalizeStyle, normalizeClass, nextTick, watchEffect } from 'vue';
+import { c as useForm, d as useInputIcon } from './VInput-CF1s2jmS.mjs';
+import { V as VTextField, m as makeVTextFieldProps } from './VTextField-CmLAcn2i.mjs';
+import { a5 as genericComponent, bk as useLocale, bo as useProxiedModel, bF as wrapInArray, T as deepEqual, bp as useRender, m as VIcon, z as camelizeProps, V as VAvatar, Y as ensureValidVNode, l as VDefaultsProvider, a3 as forwardRefs, A as checkPrintable, aL as matchesSelector, by as useScopeId, bw as useRtl, o as VMenuSymbol, ah as isClickInsideElement, p as VOverlay, a7 as getCurrentInstance, b6 as useDimension, bD as useToggleScope, J as convertToUnit, aV as propsFactory, aI as makeTransitionProps, aR as omit, a1 as focusChild, ab as getNextElement, a2 as focusableChildren, aJ as makeVOverlayProps, b7 as useDisplay, bq as useResizeObserver, O as debounce, C as clamp, ac as getPropertyFromItem, ar as makeDimensionProps, ao as makeComponentProps, I as IconValue } from './server.mjs';
+import { u as useAutocomplete } from './autofocus-DXczjZSo.mjs';
+import { i as useItems, u as useFilter, a as VList, c as VListSubheader, h as highlightResult, V as VCheckboxBtn, m as makeFilterProps, d as makeItemsProps } from './filter-C4RZVAII.mjs';
+import { V as VDialogTransition } from './ssrBoot-BRsRdwag.mjs';
+import { V as VSheet } from './VSheet-Cs8-m1MJ.mjs';
+import { V as VListItem } from './VListItem-DqdlKWJZ.mjs';
+import { V as VDivider } from './VDivider-D2ayNrXO.mjs';
+import { V as VChip } from './VChip-hjpRim43.mjs';
+
+const makeVMenuProps = propsFactory({
+  // TODO
+  // disableKeys: Boolean,
+  id: String,
+  submenu: Boolean,
+  ...omit(makeVOverlayProps({
+    captureFocus: true,
+    closeDelay: 250,
+    closeOnContentClick: true,
+    locationStrategy: "connected",
+    location: void 0,
+    openDelay: 300,
+    scrim: false,
+    scrollStrategy: "reposition",
+    transition: {
+      component: VDialogTransition
+    }
+  }), ["absolute"])
+}, "VMenu");
+const VMenu = genericComponent()({
+  name: "VMenu",
+  props: makeVMenuProps(),
+  emits: {
+    "update:modelValue": (value) => true
+  },
+  setup(props, {
+    slots
+  }) {
+    const isActive = useProxiedModel(props, "modelValue");
+    const {
+      scopeId
+    } = useScopeId();
+    const {
+      isRtl
+    } = useRtl();
+    const uid = useId();
+    const id = toRef(() => props.id || `v-menu-${uid}`);
+    const overlay = ref();
+    const parent = inject(VMenuSymbol, null);
+    const openChildren = shallowRef(/* @__PURE__ */ new Set());
+    provide(VMenuSymbol, {
+      register() {
+        openChildren.value.add(uid);
+      },
+      unregister() {
+        openChildren.value.delete(uid);
+      },
+      closeParents(e) {
+        setTimeout(() => {
+          if (!openChildren.value.size && !props.persistent && (e == null || overlay.value?.contentEl && !isClickInsideElement(e, overlay.value.contentEl))) {
+            isActive.value = false;
+            parent?.closeParents();
+          }
+        }, 40);
+      }
+    });
+    watch(isActive, (val) => {
+      val ? parent?.register() : parent?.unregister();
+    }, {
+      immediate: true
+    });
+    function onClickOutside(e) {
+      parent?.closeParents(e);
+    }
+    function onKeydown(e) {
+      if (props.disabled) return;
+      if (e.key === "Tab" || e.key === "Enter" && !props.closeOnContentClick) {
+        if (e.key === "Enter" && (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement && !!e.target.closest("form"))) return;
+        if (e.key === "Enter") e.preventDefault();
+        const nextElement = getNextElement(focusableChildren(overlay.value?.contentEl, false), e.shiftKey ? "prev" : "next", (el) => el.tabIndex >= 0);
+        if (!nextElement && !props.retainFocus) {
+          isActive.value = false;
+          overlay.value?.activatorEl?.focus();
+        }
+      } else if (props.submenu && e.key === (isRtl.value ? "ArrowRight" : "ArrowLeft")) {
+        isActive.value = false;
+        overlay.value?.activatorEl?.focus();
+      }
+    }
+    function onActivatorKeydown(e) {
+      if (props.disabled) return;
+      const el = overlay.value?.contentEl;
+      if (el && isActive.value) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          focusChild(el, "next");
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          focusChild(el, "prev");
+        } else if (props.submenu) {
+          if (e.key === (isRtl.value ? "ArrowRight" : "ArrowLeft")) {
+            isActive.value = false;
+          } else if (e.key === (isRtl.value ? "ArrowLeft" : "ArrowRight")) {
+            e.preventDefault();
+            focusChild(el, "first");
+          }
+        }
+      } else if (props.submenu ? e.key === (isRtl.value ? "ArrowLeft" : "ArrowRight") : ["ArrowDown", "ArrowUp"].includes(e.key)) {
+        isActive.value = true;
+        e.preventDefault();
+        setTimeout(() => setTimeout(() => onActivatorKeydown(e)));
+      }
+    }
+    const activatorProps = computed(() => mergeProps({
+      "aria-haspopup": "menu",
+      "aria-expanded": String(isActive.value),
+      "aria-controls": id.value,
+      "aria-owns": id.value,
+      onKeydown: onActivatorKeydown
+    }, props.activatorProps));
+    useRender(() => {
+      const overlayProps = VOverlay.filterProps(props);
+      return createVNode(VOverlay, mergeProps({
+        "ref": overlay,
+        "id": id.value,
+        "class": ["v-menu", props.class],
+        "style": props.style
+      }, overlayProps, {
+        "modelValue": isActive.value,
+        "onUpdate:modelValue": ($event) => isActive.value = $event,
+        "absolute": true,
+        "activatorProps": activatorProps.value,
+        "location": props.location ?? (props.submenu ? "end" : "bottom"),
+        "onClick:outside": onClickOutside,
+        "onKeydown": onKeydown
+      }, scopeId), {
+        activator: slots.activator,
+        default: (...args) => createVNode(VDefaultsProvider, {
+          "root": "VMenu"
+        }, {
+          default: () => [slots.default?.(...args)]
+        })
+      });
+    });
+    return forwardRefs({
+      id,
+      ΨopenChildren: openChildren
+    }, overlay);
+  }
+});
+const makeVVirtualScrollItemProps = propsFactory({
+  renderless: Boolean,
+  ...makeComponentProps()
+}, "VVirtualScrollItem");
+const VVirtualScrollItem = genericComponent()({
+  name: "VVirtualScrollItem",
+  inheritAttrs: false,
+  props: makeVVirtualScrollItemProps(),
+  emits: {
+    "update:height": (height) => true
+  },
+  setup(props, {
+    attrs,
+    emit,
+    slots
+  }) {
+    const {
+      resizeRef,
+      contentRect
+    } = useResizeObserver(void 0, "border");
+    watch(() => contentRect.value?.height, (height) => {
+      if (height != null) emit("update:height", height);
+    });
+    useRender(() => props.renderless ? createElementVNode(Fragment, null, [slots.default?.({
+      itemRef: resizeRef
+    })]) : createElementVNode("div", mergeProps({
+      "ref": resizeRef,
+      "class": ["v-virtual-scroll__item", props.class],
+      "style": props.style
+    }, attrs), [slots.default?.()]));
+  }
+});
+const UP = -1;
+const DOWN = 1;
+const BUFFER_PX = 100;
+const makeVirtualProps = propsFactory({
+  itemHeight: {
+    type: [Number, String],
+    default: null
+  },
+  itemKey: {
+    type: [String, Array, Function],
+    default: null
+  },
+  height: [Number, String]
+}, "virtual");
+function useVirtual(props, items) {
+  const display = useDisplay();
+  const itemHeight = shallowRef(0);
+  watchEffect(() => {
+    itemHeight.value = parseFloat(props.itemHeight || 0);
+  });
+  const first = shallowRef(0);
+  const last = shallowRef(Math.ceil(
+    // Assume 16px items filling the entire screen height if
+    // not provided. This is probably incorrect but it minimises
+    // the chance of ending up with empty space at the bottom.
+    // The default value is set here to avoid poisoning getSize()
+    (parseInt(props.height) || display.height.value) / (itemHeight.value || 16)
+  ) || 1);
+  const paddingTop = shallowRef(0);
+  const paddingBottom = shallowRef(0);
+  const containerRef = ref();
+  const markerRef = ref();
+  let markerOffset = 0;
+  const {
+    resizeRef,
+    contentRect
+  } = useResizeObserver();
+  watchEffect(() => {
+    resizeRef.value = containerRef.value;
+  });
+  const viewportHeight = computed(() => {
+    return containerRef.value === (void 0).documentElement ? display.height.value : contentRect.value?.height || parseInt(props.height) || 0;
+  });
+  const hasInitialRender = computed(() => {
+    return !!(containerRef.value && markerRef.value && viewportHeight.value && itemHeight.value);
+  });
+  let sizes = Array.from({
+    length: items.value.length
+  });
+  let offsets = Array.from({
+    length: items.value.length
+  });
+  const updateTime = shallowRef(0);
+  let targetScrollIndex = -1;
+  function getSize(index) {
+    return sizes[index] || itemHeight.value;
+  }
+  const updateOffsets = debounce(() => {
+    const start = performance.now();
+    offsets[0] = 0;
+    const length = items.value.length;
+    for (let i = 1; i <= length; i++) {
+      offsets[i] = (offsets[i - 1] || 0) + getSize(i - 1);
+    }
+    updateTime.value = Math.max(updateTime.value, performance.now() - start);
+  }, updateTime);
+  const unwatch = watch(hasInitialRender, (v) => {
+    if (!v) return;
+    unwatch();
+    markerOffset = markerRef.value.offsetTop;
+    updateOffsets.immediate();
+    calculateVisibleItems();
+    if (!~targetScrollIndex) return;
+    nextTick(() => {
+    });
+  });
+  onScopeDispose(() => {
+    updateOffsets.clear();
+  });
+  function handleItemResize(index, height) {
+    const prevHeight = sizes[index];
+    const prevMinHeight = itemHeight.value;
+    itemHeight.value = prevMinHeight ? Math.min(itemHeight.value, height) : height;
+    if (prevHeight !== height || prevMinHeight !== itemHeight.value) {
+      sizes[index] = height;
+      updateOffsets();
+    }
+  }
+  function calculateOffset(index) {
+    index = clamp(index, 0, items.value.length);
+    const whole = Math.floor(index);
+    const fraction = index % 1;
+    const next = whole + 1;
+    const wholeOffset = offsets[whole] || 0;
+    const nextOffset = offsets[next] || wholeOffset;
+    return wholeOffset + (nextOffset - wholeOffset) * fraction;
+  }
+  function calculateIndex(scrollTop) {
+    return binaryClosest(offsets, scrollTop);
+  }
+  let lastScrollTop = 0;
+  let scrollVelocity = 0;
+  let lastScrollTime = 0;
+  watch(viewportHeight, (val, oldVal) => {
+    calculateVisibleItems();
+    if (val < oldVal) {
+      requestAnimationFrame(() => {
+        scrollVelocity = 0;
+        calculateVisibleItems();
+      });
+    }
+  });
+  let scrollTimeout = -1;
+  function handleScroll() {
+    if (!containerRef.value || !markerRef.value) return;
+    const scrollTop = containerRef.value.scrollTop;
+    const scrollTime = performance.now();
+    const scrollDeltaT = scrollTime - lastScrollTime;
+    if (scrollDeltaT > 500) {
+      scrollVelocity = Math.sign(scrollTop - lastScrollTop);
+      markerOffset = markerRef.value.offsetTop;
+    } else {
+      scrollVelocity = scrollTop - lastScrollTop;
+    }
+    lastScrollTop = scrollTop;
+    lastScrollTime = scrollTime;
+    (void 0).clearTimeout(scrollTimeout);
+    scrollTimeout = (void 0).setTimeout(handleScrollend, 500);
+    calculateVisibleItems();
+  }
+  function handleScrollend() {
+    if (!containerRef.value || !markerRef.value) return;
+    scrollVelocity = 0;
+    lastScrollTime = 0;
+    (void 0).clearTimeout(scrollTimeout);
+    calculateVisibleItems();
+  }
+  let raf = -1;
+  function calculateVisibleItems() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(_calculateVisibleItems);
+  }
+  function _calculateVisibleItems() {
+    if (!containerRef.value || !viewportHeight.value || !itemHeight.value) return;
+    const scrollTop = lastScrollTop - markerOffset;
+    const direction = Math.sign(scrollVelocity);
+    const startPx = Math.max(0, scrollTop - BUFFER_PX);
+    const start = clamp(calculateIndex(startPx), 0, items.value.length);
+    const endPx = scrollTop + viewportHeight.value + BUFFER_PX;
+    const end = clamp(calculateIndex(endPx) + 1, start + 1, items.value.length);
+    if (
+      // Only update the side we're scrolling towards,
+      // the other side will be updated incidentally
+      (direction !== UP || start < first.value) && (direction !== DOWN || end > last.value)
+    ) {
+      const topOverflow = calculateOffset(first.value) - calculateOffset(start);
+      const bottomOverflow = calculateOffset(end) - calculateOffset(last.value);
+      const bufferOverflow = Math.max(topOverflow, bottomOverflow);
+      if (bufferOverflow > BUFFER_PX) {
+        first.value = start;
+        last.value = end;
+      } else {
+        if (start <= 0) first.value = start;
+        if (end >= items.value.length) last.value = end;
+      }
+    }
+    paddingTop.value = calculateOffset(first.value);
+    paddingBottom.value = calculateOffset(items.value.length) - calculateOffset(last.value);
+  }
+  function scrollToIndex(index) {
+    const offset = calculateOffset(index);
+    if (!containerRef.value || index && !offset) {
+      targetScrollIndex = index;
+    } else {
+      containerRef.value.scrollTop = offset;
+    }
+  }
+  const computedItems = computed(() => {
+    return items.value.slice(first.value, last.value).map((item, index) => {
+      const _index = index + first.value;
+      return {
+        raw: item,
+        index: _index,
+        key: getPropertyFromItem(item, props.itemKey, _index)
+      };
+    });
+  });
+  watch(items, () => {
+    sizes = Array.from({
+      length: items.value.length
+    });
+    offsets = Array.from({
+      length: items.value.length
+    });
+    updateOffsets.immediate();
+    calculateVisibleItems();
+  }, {
+    deep: 1
+  });
+  return {
+    calculateVisibleItems,
+    containerRef,
+    markerRef,
+    computedItems,
+    paddingTop,
+    paddingBottom,
+    scrollToIndex,
+    handleScroll,
+    handleScrollend,
+    handleItemResize
+  };
+}
+function binaryClosest(arr, val) {
+  let high = arr.length - 1;
+  let low = 0;
+  let mid = 0;
+  let item = null;
+  let target = -1;
+  if (arr[high] < val) {
+    return high;
+  }
+  while (low <= high) {
+    mid = low + high >> 1;
+    item = arr[mid];
+    if (item > val) {
+      high = mid - 1;
+    } else if (item < val) {
+      target = mid;
+      low = mid + 1;
+    } else if (item === val) {
+      return mid;
+    } else {
+      return low;
+    }
+  }
+  return target;
+}
+const makeVVirtualScrollProps = propsFactory({
+  items: {
+    type: Array,
+    default: () => []
+  },
+  renderless: Boolean,
+  ...makeVirtualProps(),
+  ...makeComponentProps(),
+  ...makeDimensionProps()
+}, "VVirtualScroll");
+const VVirtualScroll = genericComponent()({
+  name: "VVirtualScroll",
+  props: makeVVirtualScrollProps(),
+  setup(props, {
+    slots
+  }) {
+    getCurrentInstance("VVirtualScroll");
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const {
+      calculateVisibleItems,
+      containerRef,
+      markerRef,
+      handleScroll,
+      handleScrollend,
+      handleItemResize,
+      scrollToIndex,
+      paddingTop,
+      paddingBottom,
+      computedItems
+    } = useVirtual(props, toRef(() => props.items));
+    useToggleScope(() => props.renderless, () => {
+      function handleListeners(add = false) {
+        return;
+      }
+      onScopeDispose(handleListeners);
+    });
+    useRender(() => {
+      const children = computedItems.value.map((item) => createVNode(VVirtualScrollItem, {
+        "key": item.key,
+        "renderless": props.renderless,
+        "onUpdate:height": (height) => handleItemResize(item.index, height)
+      }, {
+        default: (slotProps) => slots.default?.({
+          item: item.raw,
+          index: item.index,
+          ...slotProps
+        })
+      }));
+      return props.renderless ? createElementVNode(Fragment, null, [createElementVNode("div", {
+        "ref": markerRef,
+        "class": "v-virtual-scroll__spacer",
+        "style": {
+          paddingTop: convertToUnit(paddingTop.value)
+        }
+      }, null), children, createElementVNode("div", {
+        "class": "v-virtual-scroll__spacer",
+        "style": {
+          paddingBottom: convertToUnit(paddingBottom.value)
+        }
+      }, null)]) : createElementVNode("div", {
+        "ref": containerRef,
+        "class": normalizeClass(["v-virtual-scroll", props.class]),
+        "onScrollPassive": handleScroll,
+        "onScrollend": handleScrollend,
+        "style": normalizeStyle([dimensionStyles.value, props.style])
+      }, [createElementVNode("div", {
+        "ref": markerRef,
+        "class": "v-virtual-scroll__container",
+        "style": {
+          paddingTop: convertToUnit(paddingTop.value),
+          paddingBottom: convertToUnit(paddingBottom.value)
+        }
+      }, [children])]);
+    });
+    return {
+      calculateVisibleItems,
+      scrollToIndex
+    };
+  }
+});
+function useScrolling(listRef, textFieldRef) {
+  const isScrolling = shallowRef(false);
+  let scrollTimeout;
+  function onListScroll(e) {
+    cancelAnimationFrame(scrollTimeout);
+    isScrolling.value = true;
+    scrollTimeout = requestAnimationFrame(() => {
+      scrollTimeout = requestAnimationFrame(() => {
+        isScrolling.value = false;
+      });
+    });
+  }
+  async function finishScrolling() {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => {
+      if (isScrolling.value) {
+        const stop = watch(isScrolling, () => {
+          stop();
+          resolve();
+        });
+      } else resolve();
+    });
+  }
+  async function onListKeydown(e) {
+    if (e.key === "Tab") {
+      textFieldRef.value?.focus();
+    }
+    if (!["PageDown", "PageUp", "Home", "End"].includes(e.key)) return;
+    const el = listRef.value?.$el;
+    if (!el) return;
+    if (e.key === "Home" || e.key === "End") {
+      el.scrollTo({
+        top: e.key === "Home" ? 0 : el.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+    await finishScrolling();
+    const children = el.querySelectorAll(":scope > :not(.v-virtual-scroll__spacer)");
+    if (e.key === "PageDown" || e.key === "Home") {
+      const top = el.getBoundingClientRect().top;
+      for (const child of children) {
+        if (child.getBoundingClientRect().top >= top) {
+          child.focus();
+          break;
+        }
+      }
+    } else {
+      const bottom = el.getBoundingClientRect().bottom;
+      for (const child of [...children].reverse()) {
+        if (child.getBoundingClientRect().bottom <= bottom) {
+          child.focus();
+          break;
+        }
+      }
+    }
+  }
+  return {
+    onScrollPassive: onListScroll,
+    onKeydown: onListKeydown
+  };
+}
+function useFocusGroups({
+  groups,
+  onLeave
+}) {
+  function getContentRef(group) {
+    return group.type === "list" ? group.contentRef.value?.$el : group.contentRef.value;
+  }
+  function getChildren(group) {
+    const contentRef = getContentRef(group);
+    return contentRef ? focusableChildren(contentRef) : [];
+  }
+  function onTabKeydown(e) {
+    const target = e.target;
+    const direction = e.shiftKey ? "backward" : "forward";
+    const children = groups.map(getChildren);
+    const currentGroupIndex = groups.map((g) => g.type === "list" ? g.contentRef.value?.$el : g.contentRef.value).findIndex((el) => el?.contains(target));
+    const nextIndex = nextFocusGroup(children, currentGroupIndex, direction, target);
+    if (nextIndex === null) {
+      const originGroup = groups[currentGroupIndex];
+      const origin = children[currentGroupIndex];
+      const isListGroup = originGroup.type === "list";
+      const atEdge = isListGroup || (direction === "forward" ? origin.at(-1) === e.target : origin.at(0) === e.target);
+      if (atEdge) {
+        onLeave();
+      }
+    } else {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const nextGroup = groups[nextIndex];
+      if (nextGroup.type === "list" && toValue(nextGroup.displayItemsCount) > 0) {
+        nextGroup.contentRef.value?.focus(0);
+      } else {
+        const fromBefore = direction === "forward";
+        children[nextIndex].at(fromBefore ? 0 : -1).focus();
+      }
+    }
+  }
+  function nextFocusGroup(children, currentIndex, direction, target) {
+    const originGroup = groups[currentIndex];
+    const origin = children[currentIndex];
+    if (originGroup.type !== "list") {
+      const isAtEdge = direction === "forward" ? origin.at(-1) === target : origin.at(0) === target;
+      if (!isAtEdge) return null;
+    }
+    const step = direction === "forward" ? 1 : -1;
+    for (let i = currentIndex + step; i >= 0 && i < groups.length; i += step) {
+      const group = groups[i];
+      if (children[i].length > 0 || group.type === "list" && toValue(group.displayItemsCount) > 0) {
+        return i;
+      }
+    }
+    return null;
+  }
+  return {
+    onTabKeydown
+  };
+}
+const makeMenuActivatorProps = propsFactory({
+  closeText: {
+    type: String,
+    default: "$vuetify.close"
+  },
+  openText: {
+    type: String,
+    default: "$vuetify.open"
+  }
+}, "autocomplete");
+function useMenuActivator(props, isOpen) {
+  const uid = useId();
+  const menuId = computed(() => `menu-${uid}`);
+  const ariaExpanded = toRef(() => toValue(isOpen));
+  const ariaControls = toRef(() => menuId.value);
+  return {
+    menuId,
+    ariaExpanded,
+    ariaControls
+  };
+}
+const makeSelectProps = propsFactory({
+  chips: Boolean,
+  closableChips: Boolean,
+  eager: Boolean,
+  hideNoData: Boolean,
+  hideSelected: Boolean,
+  listProps: {
+    type: Object
+  },
+  menu: Boolean,
+  menuElevation: [Number, String],
+  menuIcon: {
+    type: IconValue,
+    default: "$dropdown"
+  },
+  menuProps: {
+    type: Object
+  },
+  multiple: Boolean,
+  noDataText: {
+    type: String,
+    default: "$vuetify.noDataText"
+  },
+  openOnClear: Boolean,
+  itemColor: String,
+  noAutoScroll: Boolean,
+  ...makeMenuActivatorProps(),
+  ...makeItemsProps({
+    itemChildren: false
+  })
+}, "Select");
+const makeVSelectProps = propsFactory({
+  search: String,
+  ...makeFilterProps({
+    filterKeys: ["title"]
+  }),
+  ...makeSelectProps(),
+  ...omit(makeVTextFieldProps({
+    modelValue: null,
+    role: "combobox"
+  }), ["validationValue", "dirty"]),
+  ...makeTransitionProps({
+    transition: {
+      component: VDialogTransition
+    }
+  })
+}, "VSelect");
+const VSelect = genericComponent()({
+  name: "VSelect",
+  props: makeVSelectProps(),
+  emits: {
+    "update:focused": (focused) => true,
+    "update:modelValue": (value) => true,
+    "update:menu": (ue) => true,
+    "update:search": (value) => true
+  },
+  setup(props, {
+    slots
+  }) {
+    const {
+      t
+    } = useLocale();
+    const vTextFieldRef = ref();
+    const vMenuRef = ref();
+    const headerRef = ref();
+    const footerRef = ref();
+    const vVirtualScrollRef = ref();
+    const {
+      items,
+      transformIn,
+      transformOut
+    } = useItems(props);
+    const search = useProxiedModel(props, "search", "");
+    const {
+      filteredItems,
+      getMatches
+    } = useFilter(props, items, () => search.value);
+    const model = useProxiedModel(props, "modelValue", [], (v) => transformIn(v === null ? [null] : wrapInArray(v)), (v) => {
+      const transformed = transformOut(v);
+      return props.multiple ? transformed : transformed[0] ?? null;
+    });
+    const counterValue = computed(() => {
+      return typeof props.counterValue === "function" ? props.counterValue(model.value) : typeof props.counterValue === "number" ? props.counterValue : model.value.length;
+    });
+    const form = useForm(props);
+    const autocomplete = useAutocomplete(props);
+    const selectedValues = computed(() => model.value.map((selection) => selection.value));
+    const isFocused = shallowRef(false);
+    const closableChips = toRef(() => props.closableChips && !form.isReadonly.value && !form.isDisabled.value);
+    const {
+      InputIcon
+    } = useInputIcon(props);
+    let keyboardLookupPrefix = "";
+    let keyboardLookupIndex = 0;
+    let keyboardLookupLastTime;
+    const displayItems = computed(() => {
+      const baseItems = search.value ? filteredItems.value : items.value;
+      if (props.hideSelected) {
+        return baseItems.filter((item) => !model.value.some((s) => (props.valueComparator || deepEqual)(s, item)));
+      }
+      return baseItems;
+    });
+    const menuDisabled = computed(() => props.hideNoData && !displayItems.value.length || form.isReadonly.value || form.isDisabled.value);
+    const _menu = useProxiedModel(props, "menu");
+    const menu = computed({
+      get: () => _menu.value,
+      set: (v) => {
+        if (_menu.value && !v && vMenuRef.value?.ΨopenChildren.size) return;
+        if (v && menuDisabled.value) return;
+        _menu.value = v;
+      }
+    });
+    const {
+      menuId,
+      ariaExpanded,
+      ariaControls
+    } = useMenuActivator(props, menu);
+    const computedMenuProps = computed(() => {
+      return {
+        ...props.menuProps,
+        activatorProps: {
+          ...props.menuProps?.activatorProps || {},
+          "aria-haspopup": "listbox"
+          // Set aria-haspopup to 'listbox'
+        }
+      };
+    });
+    const listRef = ref();
+    const listEvents = useScrolling(listRef, vTextFieldRef);
+    const {
+      onTabKeydown
+    } = useFocusGroups({
+      groups: [{
+        type: "element",
+        contentRef: headerRef
+      }, {
+        type: "list",
+        contentRef: listRef,
+        displayItemsCount: () => displayItems.value.length
+      }, {
+        type: "element",
+        contentRef: footerRef
+      }],
+      onLeave: () => {
+        menu.value = false;
+        vTextFieldRef.value?.focus();
+      }
+    });
+    function onClear(e) {
+      if (props.openOnClear) {
+        menu.value = true;
+      }
+    }
+    function onMousedownControl() {
+      if (menuDisabled.value) return;
+      menu.value = !menu.value;
+    }
+    function onMenuKeydown(e) {
+      if (e.key === "Tab") {
+        onTabKeydown(e);
+      }
+      if (listRef.value?.$el.contains(e.target) && checkPrintable(e)) {
+        onKeydown(e);
+      }
+    }
+    function onKeydown(e) {
+      if (!e.key || form.isReadonly.value) return;
+      if (["Enter", " ", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+        e.preventDefault();
+      }
+      if (["Enter", "ArrowDown", " "].includes(e.key)) {
+        menu.value = true;
+      }
+      if (["Escape", "Tab"].includes(e.key)) {
+        menu.value = false;
+      }
+      if (props.clearable && e.key === "Backspace") {
+        e.preventDefault();
+        model.value = [];
+        onClear();
+        return;
+      }
+      if (e.key === "Home") {
+        listRef.value?.focus("first");
+      } else if (e.key === "End") {
+        listRef.value?.focus("last");
+      }
+      const KEYBOARD_LOOKUP_THRESHOLD = 1e3;
+      if (!checkPrintable(e)) return;
+      const now = performance.now();
+      if (now - keyboardLookupLastTime > KEYBOARD_LOOKUP_THRESHOLD) {
+        keyboardLookupPrefix = "";
+        keyboardLookupIndex = 0;
+      }
+      keyboardLookupPrefix += e.key.toLowerCase();
+      keyboardLookupLastTime = now;
+      const items2 = displayItems.value;
+      function findItem() {
+        let result2 = findItemBase();
+        if (result2) return result2;
+        if (keyboardLookupPrefix.at(-1) === keyboardLookupPrefix.at(-2)) {
+          keyboardLookupPrefix = keyboardLookupPrefix.slice(0, -1);
+          keyboardLookupIndex++;
+          result2 = findItemBase();
+          if (result2) return result2;
+        }
+        keyboardLookupIndex = 0;
+        result2 = findItemBase();
+        if (result2) return result2;
+        keyboardLookupPrefix = e.key.toLowerCase();
+        return findItemBase();
+      }
+      function findItemBase() {
+        for (let i = keyboardLookupIndex; i < items2.length; i++) {
+          const _item = items2[i];
+          if (_item.title.toLowerCase().startsWith(keyboardLookupPrefix)) {
+            return [_item, i];
+          }
+        }
+        return void 0;
+      }
+      const result = findItem();
+      if (!result) return;
+      const [item, index] = result;
+      keyboardLookupIndex = index;
+      listRef.value?.focus(index);
+      if (!props.multiple) {
+        model.value = [item];
+      }
+    }
+    function select(item, set = true) {
+      if (item.props.disabled) return;
+      if (props.multiple) {
+        const index = model.value.findIndex((selection) => (props.valueComparator || deepEqual)(selection.value, item.value));
+        const add = set == null ? !~index : set;
+        if (~index) {
+          const value = add ? [...model.value, item] : [...model.value];
+          value.splice(index, 1);
+          model.value = value;
+        } else if (add) {
+          model.value = [...model.value, item];
+        }
+      } else {
+        const add = set !== false;
+        model.value = add ? [item] : [];
+        nextTick(() => {
+          menu.value = false;
+        });
+      }
+    }
+    function onBlur(e) {
+      const target = e.target;
+      if (!vTextFieldRef.value?.$el.contains(target)) {
+        menu.value = false;
+      }
+    }
+    function getSelectedIndex() {
+      return displayItems.value.findIndex((item) => model.value.some((s) => (props.valueComparator || deepEqual)(s.value, item.value)));
+    }
+    function getSelectedFocusableIndex() {
+      if (!model.value.length) return -1;
+      const comparator = props.valueComparator || deepEqual;
+      let focusableIndex = 0;
+      for (const item of displayItems.value) {
+        const isSelected = model.value.some((s) => comparator(s.value, item.value));
+        if (isSelected) return item.props.disabled ? -1 : focusableIndex;
+        if (!item.props.disabled) focusableIndex++;
+      }
+      return -1;
+    }
+    function onAfterEnter() {
+      if (props.eager) {
+        vVirtualScrollRef.value?.calculateVisibleItems();
+      }
+      if (listRef.value && isFocused.value) {
+        const index = getSelectedFocusableIndex();
+        listRef.value.focus(index >= 0 ? index : "first", {
+          focusVisible: false
+        });
+      }
+    }
+    function onAfterLeave() {
+      search.value = "";
+      if (isFocused.value) {
+        vTextFieldRef.value?.focus();
+      }
+    }
+    function onFocusin(e) {
+      isFocused.value = true;
+    }
+    function onFocusout(e) {
+      if (!vTextFieldRef.value?.$el.contains(e.relatedTarget) && !e.currentTarget.contains(e.relatedTarget)) {
+        isFocused.value = false;
+      }
+    }
+    function onModelUpdate(v) {
+      if (v == null) model.value = [];
+      else if (matchesSelector(vTextFieldRef.value) || matchesSelector(vTextFieldRef.value)) ; else if (vTextFieldRef.value) {
+        vTextFieldRef.value.value = "";
+      }
+    }
+    watch(menu, () => {
+      if (!props.hideSelected && menu.value && model.value.length) {
+        getSelectedIndex();
+      }
+    });
+    watch(items, (newVal, oldVal) => {
+      if (menu.value) return;
+      if (isFocused.value && props.hideNoData && !oldVal.length && newVal.length) {
+        menu.value = true;
+      }
+    });
+    useRender(() => {
+      const hasChips = !!(props.chips || slots.chip);
+      const hasList = !!(!props.hideNoData || displayItems.value.length || slots["prepend-item"] || slots["append-item"] || slots["no-data"]);
+      const isDirty = model.value.length > 0;
+      const textFieldProps = VTextField.filterProps(props);
+      const placeholder = isDirty || !isFocused.value && props.label && !props.persistentPlaceholder ? void 0 : props.placeholder;
+      const menuSlotProps = {
+        search,
+        filteredItems: filteredItems.value
+      };
+      return createVNode(VTextField, mergeProps({
+        "ref": vTextFieldRef
+      }, textFieldProps, {
+        "modelValue": model.value.map((v) => v.props.title).join(", "),
+        "name": void 0,
+        "onUpdate:modelValue": onModelUpdate,
+        "focused": isFocused.value,
+        "onUpdate:focused": ($event) => isFocused.value = $event,
+        "validationValue": model.externalValue,
+        "counterValue": counterValue.value,
+        "dirty": isDirty,
+        "class": ["v-select", {
+          "v-select--active-menu": menu.value,
+          "v-select--chips": !!props.chips,
+          [`v-select--${props.multiple ? "multiple" : "single"}`]: true,
+          "v-select--selected": model.value.length,
+          "v-select--selection-slot": !!slots.selection
+        }, props.class],
+        "style": props.style,
+        "inputmode": "none",
+        "placeholder": placeholder,
+        "onClick:clear": onClear,
+        "onMousedown:control": onMousedownControl,
+        "onBlur": onBlur,
+        "onKeydown": onKeydown,
+        "aria-expanded": ariaExpanded.value,
+        "aria-controls": ariaControls.value
+      }), {
+        ...slots,
+        default: ({
+          id
+        }) => createElementVNode(Fragment, null, [createElementVNode("select", {
+          "hidden": true,
+          "multiple": props.multiple,
+          "name": autocomplete.fieldName.value
+        }, [items.value.map((item) => createElementVNode("option", {
+          "key": item.value,
+          "value": item.value,
+          "selected": selectedValues.value.includes(item.value)
+        }, null))]), createVNode(VMenu, mergeProps({
+          "id": menuId.value,
+          "ref": vMenuRef,
+          "modelValue": menu.value,
+          "onUpdate:modelValue": ($event) => menu.value = $event,
+          "activator": "parent",
+          "disabled": menuDisabled.value,
+          "eager": props.eager,
+          "maxHeight": 310,
+          "openOnClick": false,
+          "closeOnContentClick": false,
+          "transition": props.transition,
+          "onAfterEnter": onAfterEnter,
+          "onAfterLeave": onAfterLeave
+        }, computedMenuProps.value, {
+          "contentClass": ["v-select__content", computedMenuProps.value.contentClass]
+        }), {
+          default: () => [createVNode(VSheet, {
+            "elevation": props.menuElevation,
+            "onFocusin": onFocusin,
+            "onFocusout": onFocusout,
+            "onKeydown": onMenuKeydown
+          }, {
+            default: () => [slots["menu-header"] && createElementVNode("header", {
+              "ref": headerRef
+            }, [slots["menu-header"](menuSlotProps)]), hasList && createVNode(VList, mergeProps({
+              "key": "select-list",
+              "ref": listRef,
+              "selected": selectedValues.value,
+              "selectStrategy": props.multiple ? "independent" : "single-independent",
+              "tabindex": "-1",
+              "selectable": !!displayItems.value.length,
+              "aria-live": "polite",
+              "aria-labelledby": `${id.value}-label`,
+              "aria-multiselectable": props.multiple,
+              "color": props.itemColor ?? props.color
+            }, listEvents, props.listProps), {
+              default: () => [slots["prepend-item"]?.(), !displayItems.value.length && !props.hideNoData && (slots["no-data"]?.() ?? createVNode(VListItem, {
+                "key": "no-data",
+                "title": t(props.noDataText)
+              }, null)), createVNode(VVirtualScroll, {
+                "ref": vVirtualScrollRef,
+                "renderless": true,
+                "items": displayItems.value,
+                "itemKey": "value"
+              }, {
+                default: ({
+                  item,
+                  index,
+                  itemRef
+                }) => {
+                  const camelizedProps = camelizeProps(item.props);
+                  const itemProps = mergeProps(item.props, {
+                    ref: itemRef,
+                    key: item.value,
+                    onClick: () => select(item, null),
+                    "aria-posinset": index + 1,
+                    "aria-setsize": displayItems.value.length
+                  });
+                  if (item.type === "divider") {
+                    return slots.divider?.({
+                      props: item.raw,
+                      index
+                    }) ?? createVNode(VDivider, mergeProps(item.props, {
+                      "key": `divider-${index}`
+                    }), null);
+                  }
+                  if (item.type === "subheader") {
+                    return slots.subheader?.({
+                      props: item.raw,
+                      index
+                    }) ?? createVNode(VListSubheader, mergeProps(item.props, {
+                      "key": `subheader-${index}`
+                    }), null);
+                  }
+                  return slots.item?.({
+                    item: item.raw,
+                    internalItem: item,
+                    index,
+                    props: itemProps
+                  }) ?? createVNode(VListItem, mergeProps(itemProps, {
+                    "role": "option"
+                  }), {
+                    prepend: ({
+                      isSelected
+                    }) => createElementVNode(Fragment, null, [props.multiple && !props.hideSelected ? createVNode(VCheckboxBtn, {
+                      "key": item.value,
+                      "modelValue": isSelected,
+                      "ripple": false,
+                      "tabindex": "-1",
+                      "aria-hidden": true,
+                      "onClick": (event) => event.preventDefault()
+                    }, null) : void 0, camelizedProps.prependAvatar && createVNode(VAvatar, {
+                      "image": camelizedProps.prependAvatar
+                    }, null), camelizedProps.prependIcon && createVNode(VIcon, {
+                      "icon": camelizedProps.prependIcon
+                    }, null)]),
+                    title: () => {
+                      return search.value ? highlightResult("v-select", item.title, getMatches(item)?.title) : item.title;
+                    }
+                  });
+                }
+              }), slots["append-item"]?.()]
+            }), slots["menu-footer"] && createElementVNode("footer", {
+              "ref": footerRef
+            }, [slots["menu-footer"](menuSlotProps)])]
+          })]
+        }), model.value.map((item, index) => {
+          function onChipClose(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            select(item, false);
+          }
+          const slotProps = mergeProps(VChip.filterProps(item.props), {
+            "onClick:close": onChipClose,
+            onKeydown(e) {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              e.stopPropagation();
+              onChipClose(e);
+            },
+            onMousedown(e) {
+              e.preventDefault();
+              e.stopPropagation();
+            },
+            modelValue: true,
+            "onUpdate:modelValue": void 0
+          });
+          const hasSlot = hasChips ? !!slots.chip : !!slots.selection;
+          const slotContent = hasSlot ? ensureValidVNode(hasChips ? slots.chip({
+            item: item.raw,
+            internalItem: item,
+            index,
+            props: slotProps
+          }) : slots.selection({
+            item: item.raw,
+            internalItem: item,
+            index
+          })) : void 0;
+          if (hasSlot && !slotContent) return void 0;
+          return createElementVNode("div", {
+            "key": item.value,
+            "class": "v-select__selection"
+          }, [hasChips ? !slots.chip ? createVNode(VChip, mergeProps({
+            "key": "chip",
+            "closable": closableChips.value,
+            "size": "small",
+            "text": item.title,
+            "disabled": item.props.disabled
+          }, slotProps), null) : createVNode(VDefaultsProvider, {
+            "key": "chip-defaults",
+            "defaults": {
+              VChip: {
+                closable: closableChips.value,
+                size: "small",
+                text: item.title
+              }
+            }
+          }, {
+            default: () => [slotContent]
+          }) : slotContent ?? createElementVNode("span", {
+            "class": "v-select__selection-text"
+          }, [item.title, props.multiple && index < model.value.length - 1 && createElementVNode("span", {
+            "class": "v-select__selection-comma"
+          }, [createTextVNode(",")])])]);
+        })]),
+        "append-inner": (...args) => createElementVNode(Fragment, null, [slots["append-inner"]?.(...args), props.menuIcon ? createVNode(VIcon, {
+          "class": "v-select__menu-icon",
+          "color": vTextFieldRef.value?.fieldIconColor,
+          "icon": props.menuIcon,
+          "aria-hidden": true
+        }, null) : void 0, props.appendInnerIcon && createVNode(InputIcon, {
+          "key": "append-icon",
+          "name": "appendInner",
+          "color": args[0].iconColor.value
+        }, null)])
+      });
+    });
+    return forwardRefs({
+      isFocused,
+      menu,
+      search,
+      filteredItems,
+      select
+    }, vTextFieldRef);
+  }
+});
+
+export { VMenu as V, VSelect as a, VVirtualScroll as b, useMenuActivator as c, useScrolling as d, makeSelectProps as m, useFocusGroups as u };
+//# sourceMappingURL=VSelect-Dg8iXqNr.mjs.map

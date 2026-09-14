@@ -1,0 +1,2524 @@
+import { bz as useSeoMeta, b0 as useAppStore, _ as __nuxt_component_0$1, k as VBtn, U as defineComponent$1, bo as useProxiedModel, h as RGBtoHSV, aS as parseColor, G as consoleWarn, bw as useRtl, aW as provideDefaults, bp as useRender, b as HSVtoCSS, e as HSVtoRGB, c as HSVtoHSL, d as HSVtoHex, ae as has, a5 as genericComponent, b1 as useBackgroundColor, l as VDefaultsProvider, C as clamp, J as convertToUnit, bq as useResizeObserver, aa as getEventCoordinates, ad as getTargetBox, bk as useLocale, S as SUPPORTS_EYE_DROPPER, f as HexToHSV, H as HSLtoHSV, R as RGBtoCSS, T as deepEqual, m as VIcon, a6 as getContrast, aV as propsFactory, aU as pick, ao as makeComponentProps, a0 as filterInputAttrs, a3 as forwardRefs, I as IconValue, a9 as getDecimals, N as createRange, br as useRounded, i as Ripple, b8 as useElevation, bB as useTextColor, al as keyValues, at as makeElevationProps, aD as makeRoundedProps } from './server.mjs';
+import { defineComponent, ref, computed, watch, mergeProps, withCtx, createTextVNode, createVNode, toDisplayString, openBlock, createBlock, createCommentVNode, createElementVNode, Fragment, normalizeStyle, normalizeClass, shallowRef, toRef, normalizeProps, guardReactiveProps, onScopeDispose, provide, inject, withDirectives, vShow, nextTick, useSSRContext } from 'vue';
+import { ssrRenderComponent } from 'vue/server-renderer';
+import { V as VContainer } from './VContainer-BTz4nlxi.mjs';
+import { V as VBreadcrumbs } from './VBreadcrumbs-Cwgk5YXB.mjs';
+import { V as VAlert } from './VAlert-Bcj1ynP6.mjs';
+import { V as VCardActions, c as createSimpleFunctional } from './VCardActions-_afJsMdG.mjs';
+import { V as VSpacer } from './VSpacer-D_joSj59.mjs';
+import { V as VSwitch } from './VSwitch-CzKEuP1X.mjs';
+import { V as VDivider, d as VScaleTransition } from './VDivider-D2ayNrXO.mjs';
+import { a as VRow, V as VCol } from './VRow-DT77qovv.mjs';
+import { V as VCard } from './VCard-BMbud2FD.mjs';
+import { u as useFocus, V as VInput, a as VLabel, c as useForm, b as makeVInputProps, m as makeFocusProps } from './VInput-CF1s2jmS.mjs';
+import { V as VSheet, m as makeVSheetProps } from './VSheet-Cs8-m1MJ.mjs';
+import { V as VTextField } from './VTextField-CmLAcn2i.mjs';
+import { V as VFileInput } from './VFileInput-qhs4IC6M.mjs';
+import '../nitro/nitro.mjs';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import '../routes/renderer.mjs';
+import 'vue-bundle-renderer/runtime';
+import 'unhead/server';
+import 'devalue';
+import 'unhead/plugins';
+import 'unhead/utils';
+import 'pinia';
+import 'perfect-debounce';
+import 'js-yaml';
+import 'lz-string';
+import './VSelectionControl-BgxnoM3f.mjs';
+import './autofocus-DXczjZSo.mjs';
+import './VField-CBPZxNBP.mjs';
+import './VChip-hjpRim43.mjs';
+
+const makeVColorPickerCanvasProps = propsFactory({
+  color: {
+    type: Object
+  },
+  disabled: Boolean,
+  readonly: Boolean,
+  dotSize: {
+    type: [Number, String],
+    default: 10
+  },
+  height: {
+    type: [Number, String],
+    default: 150
+  },
+  width: {
+    type: [Number, String],
+    default: 300
+  },
+  ...makeComponentProps()
+}, "VColorPickerCanvas");
+const VColorPickerCanvas = defineComponent$1({
+  name: "VColorPickerCanvas",
+  props: makeVColorPickerCanvasProps(),
+  emits: {
+    "update:color": (color) => true,
+    "update:position": (hue) => true
+  },
+  setup(props, {
+    emit
+  }) {
+    const isInteracting = shallowRef(false);
+    const canvasRef = ref();
+    const canvasWidth = shallowRef(parseFloat(props.width));
+    const canvasHeight = shallowRef(parseFloat(props.height));
+    const _dotPosition = ref({
+      x: 0,
+      y: 0
+    });
+    const isInteractive = toRef(() => !props.disabled && !props.readonly);
+    const dotPosition = computed({
+      get: () => _dotPosition.value,
+      set(val) {
+        if (!canvasRef.value) return;
+        const {
+          x,
+          y
+        } = val;
+        _dotPosition.value = val;
+        emit("update:color", {
+          h: props.color?.h ?? 0,
+          s: clamp(x, 0, canvasWidth.value) / canvasWidth.value,
+          v: 1 - clamp(y, 0, canvasHeight.value) / canvasHeight.value,
+          a: props.color?.a ?? 1
+        });
+      }
+    });
+    const dotStyles = computed(() => {
+      const {
+        x,
+        y
+      } = dotPosition.value;
+      const radius = parseInt(props.dotSize, 10) / 2;
+      return {
+        width: convertToUnit(props.dotSize),
+        height: convertToUnit(props.dotSize),
+        transform: `translate(${convertToUnit(x - radius)}, ${convertToUnit(y - radius)})`
+      };
+    });
+    const {
+      resizeRef
+    } = useResizeObserver();
+    function updateDotPosition(x, y, rect) {
+      const {
+        left,
+        top,
+        width,
+        height
+      } = rect;
+      dotPosition.value = {
+        x: clamp(x - left, 0, width),
+        y: clamp(y - top, 0, height)
+      };
+    }
+    function handleMouseDown(e) {
+      if (e.type === "mousedown") {
+        e.preventDefault();
+      }
+      if (!isInteractive.value) return;
+      handleMouseMove(e);
+      (void 0).addEventListener("mousemove", handleMouseMove);
+      (void 0).addEventListener("mouseup", handleMouseUp);
+      (void 0).addEventListener("touchmove", handleMouseMove);
+      (void 0).addEventListener("touchend", handleMouseUp);
+    }
+    function handleMouseMove(e) {
+      if (!isInteractive.value || !canvasRef.value) return;
+      isInteracting.value = true;
+      const coords = getEventCoordinates(e);
+      const point = getTargetBox([coords.clientX, coords.clientY]);
+      updateDotPosition(point.x, point.y, getTargetBox(canvasRef.value));
+    }
+    function handleMouseUp() {
+      (void 0).removeEventListener("mousemove", handleMouseMove);
+      (void 0).removeEventListener("mouseup", handleMouseUp);
+      (void 0).removeEventListener("touchmove", handleMouseMove);
+      (void 0).removeEventListener("touchend", handleMouseUp);
+    }
+    function updateCanvas() {
+      if (!canvasRef.value) return;
+      const canvas = canvasRef.value;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const saturationGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      saturationGradient.addColorStop(0, "hsla(0, 0%, 100%, 1)");
+      saturationGradient.addColorStop(1, `hsla(${props.color?.h ?? 0}, 100%, 50%, 1)`);
+      ctx.fillStyle = saturationGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const valueGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      valueGradient.addColorStop(0, "hsla(0, 0%, 0%, 0)");
+      valueGradient.addColorStop(1, "hsla(0, 0%, 0%, 1)");
+      ctx.fillStyle = valueGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    watch(() => props.color?.h, updateCanvas, {
+      immediate: true
+    });
+    watch(() => [canvasWidth.value, canvasHeight.value], (newVal, oldVal) => {
+      updateCanvas();
+      _dotPosition.value = {
+        x: dotPosition.value.x * newVal[0] / oldVal[0],
+        y: dotPosition.value.y * newVal[1] / oldVal[1]
+      };
+    }, {
+      flush: "post"
+    });
+    watch(() => props.color, () => {
+      if (isInteracting.value) {
+        isInteracting.value = false;
+        return;
+      }
+      _dotPosition.value = props.color ? {
+        x: props.color.s * canvasWidth.value,
+        y: (1 - props.color.v) * canvasHeight.value
+      } : {
+        x: 0,
+        y: 0
+      };
+    }, {
+      deep: true,
+      immediate: true
+    });
+    useRender(() => createElementVNode("div", {
+      "ref": resizeRef,
+      "class": normalizeClass(["v-color-picker-canvas", props.class]),
+      "style": normalizeStyle(props.style),
+      "onMousedown": handleMouseDown,
+      "onTouchstartPassive": handleMouseDown
+    }, [createElementVNode("canvas", {
+      "ref": canvasRef,
+      "width": canvasWidth.value,
+      "height": canvasHeight.value
+    }, null), props.color && createElementVNode("div", {
+      "class": normalizeClass(["v-color-picker-canvas__dot", {
+        "v-color-picker-canvas__dot--disabled": props.disabled
+      }]),
+      "style": normalizeStyle(dotStyles.value)
+    }, null)]));
+    return {};
+  }
+});
+function stripAlpha(color, stripAlpha2) {
+  if (stripAlpha2) {
+    const {
+      a,
+      ...rest
+    } = color;
+    return rest;
+  }
+  return color;
+}
+function extractColor(color, input) {
+  if (input == null || typeof input === "string") {
+    const hasA = typeof color.a === "number" && color.a < 1;
+    if (input?.startsWith("rgb(")) {
+      const {
+        r,
+        g,
+        b,
+        a
+      } = HSVtoRGB(color);
+      return `rgb(${r} ${g} ${b}` + (hasA ? ` / ${a})` : ")");
+    } else if (input?.startsWith("hsl(")) {
+      const {
+        h,
+        s,
+        l,
+        a
+      } = HSVtoHSL(color);
+      return `hsl(${h} ${Math.round(s * 100)} ${Math.round(l * 100)}` + (hasA ? ` / ${a})` : ")");
+    }
+    const hex2 = HSVtoHex(color);
+    if (color.a === 1) return hex2.slice(0, 7);
+    else return hex2;
+  }
+  if (typeof input === "object") {
+    let converted;
+    if (has(input, ["r", "g", "b"])) converted = HSVtoRGB(color);
+    else if (has(input, ["h", "s", "l"])) converted = HSVtoHSL(color);
+    else if (has(input, ["h", "s", "v"])) converted = color;
+    return stripAlpha(converted, !has(input, ["a"]) && color.a === 1);
+  }
+  return color;
+}
+const nullColor = {
+  h: 0,
+  s: 0,
+  v: 0,
+  a: 1
+};
+const rgba = {
+  inputProps: {
+    type: "number",
+    min: 0
+  },
+  inputs: [{
+    label: "R",
+    max: 255,
+    step: 1,
+    getValue: (c) => Math.round(c.r),
+    getColor: (c, v) => ({
+      ...c,
+      r: Number(v)
+    }),
+    localeKey: "redInput"
+  }, {
+    label: "G",
+    max: 255,
+    step: 1,
+    getValue: (c) => Math.round(c.g),
+    getColor: (c, v) => ({
+      ...c,
+      g: Number(v)
+    }),
+    localeKey: "greenInput"
+  }, {
+    label: "B",
+    max: 255,
+    step: 1,
+    getValue: (c) => Math.round(c.b),
+    getColor: (c, v) => ({
+      ...c,
+      b: Number(v)
+    }),
+    localeKey: "blueInput"
+  }, {
+    label: "A",
+    max: 1,
+    step: 0.01,
+    getValue: ({
+      a
+    }) => a != null ? Math.round(a * 100) / 100 : 1,
+    getColor: (c, v) => ({
+      ...c,
+      a: Number(v)
+    }),
+    localeKey: "alphaInput"
+  }],
+  to: HSVtoRGB,
+  from: RGBtoHSV
+};
+const rgb = {
+  ...rgba,
+  inputs: rgba.inputs?.slice(0, 3)
+};
+const hsla = {
+  inputProps: {
+    type: "number",
+    min: 0
+  },
+  inputs: [{
+    label: "H",
+    max: 360,
+    step: 1,
+    getValue: (c) => Math.round(c.h),
+    getColor: (c, v) => ({
+      ...c,
+      h: Number(v)
+    }),
+    localeKey: "hueInput"
+  }, {
+    label: "S",
+    max: 1,
+    step: 0.01,
+    getValue: (c) => Math.round(c.s * 100) / 100,
+    getColor: (c, v) => ({
+      ...c,
+      s: Number(v)
+    }),
+    localeKey: "saturationInput"
+  }, {
+    label: "L",
+    max: 1,
+    step: 0.01,
+    getValue: (c) => Math.round(c.l * 100) / 100,
+    getColor: (c, v) => ({
+      ...c,
+      l: Number(v)
+    }),
+    localeKey: "lightnessInput"
+  }, {
+    label: "A",
+    max: 1,
+    step: 0.01,
+    getValue: ({
+      a
+    }) => a != null ? Math.round(a * 100) / 100 : 1,
+    getColor: (c, v) => ({
+      ...c,
+      a: Number(v)
+    }),
+    localeKey: "alphaInput"
+  }],
+  to: HSVtoHSL,
+  from: HSLtoHSV
+};
+const hsl = {
+  ...hsla,
+  inputs: hsla.inputs.slice(0, 3)
+};
+const hexa = {
+  inputProps: {
+    type: "text"
+  },
+  inputs: [{
+    label: "HEXA",
+    getValue: (c) => c,
+    getColor: (c, v) => v,
+    localeKey: "hexaInput"
+  }],
+  to: HSVtoHex,
+  from: HexToHSV
+};
+const hex = {
+  ...hexa,
+  inputs: [{
+    label: "HEX",
+    getValue: (c) => c.slice(0, 7),
+    getColor: (c, v) => v,
+    localeKey: "hexInput"
+  }]
+};
+const modes = {
+  rgb,
+  rgba,
+  hsl,
+  hsla,
+  hex,
+  hexa
+};
+const VColorPickerInput = ({
+  label,
+  ...rest
+}) => {
+  return createElementVNode("div", {
+    "class": "v-color-picker-edit__input"
+  }, [createElementVNode("input", normalizeProps(guardReactiveProps(rest)), null), createElementVNode("span", null, [label])]);
+};
+const makeVColorPickerEditProps = propsFactory({
+  color: Object,
+  disabled: Boolean,
+  readonly: Boolean,
+  mode: {
+    type: String,
+    default: "rgba",
+    validator: (v) => Object.keys(modes).includes(v)
+  },
+  modes: {
+    type: Array,
+    default: () => Object.keys(modes),
+    validator: (v) => Array.isArray(v) && v.every((m) => Object.keys(modes).includes(m))
+  },
+  ...makeComponentProps()
+}, "VColorPickerEdit");
+const VColorPickerEdit = defineComponent$1({
+  name: "VColorPickerEdit",
+  props: makeVColorPickerEditProps(),
+  emits: {
+    "update:color": (color) => true,
+    "update:mode": (mode) => true
+  },
+  setup(props, {
+    emit
+  }) {
+    const {
+      t
+    } = useLocale();
+    const enabledModes = computed(() => {
+      return props.modes.map((key) => ({
+        ...modes[key],
+        name: key
+      }));
+    });
+    const inputs = computed(() => {
+      const mode = enabledModes.value.find((m) => m.name === props.mode);
+      if (!mode) return [];
+      const color = props.color ? mode.to(props.color) : null;
+      return mode.inputs?.map(({
+        getValue,
+        getColor,
+        localeKey,
+        ...inputProps
+      }) => {
+        return {
+          ...mode.inputProps,
+          ...inputProps,
+          ariaLabel: t(`$vuetify.colorPicker.ariaLabel.${localeKey}`),
+          disabled: props.disabled,
+          readonly: props.readonly,
+          value: color && getValue(color),
+          onChange: (e) => {
+            const target = e.target;
+            if (!target) return;
+            emit("update:color", mode.from(getColor(color ?? mode.to(nullColor), target.value)));
+          }
+        };
+      });
+    });
+    useRender(() => createElementVNode("div", {
+      "class": normalizeClass(["v-color-picker-edit", props.class]),
+      "style": normalizeStyle(props.style)
+    }, [inputs.value?.map((props2) => createVNode(VColorPickerInput, props2, null)), enabledModes.value.length > 1 && createVNode(VBtn, {
+      "icon": "$unfold",
+      "size": "x-small",
+      "variant": "plain",
+      "aria-label": t("$vuetify.colorPicker.ariaLabel.changeFormat"),
+      "onClick": () => {
+        const mi = enabledModes.value.findIndex((m) => m.name === props.mode);
+        emit("update:mode", enabledModes.value[(mi + 1) % enabledModes.value.length].name);
+      }
+    }, null)]));
+    return {};
+  }
+});
+const VSliderSymbol = /* @__PURE__ */ Symbol.for("vuetify:v-slider");
+function getOffset(e, el, direction) {
+  const vertical = direction === "vertical";
+  const rect = el.getBoundingClientRect();
+  const touch = "touches" in e ? e.touches[0] : e;
+  return vertical ? touch.clientY - (rect.top + rect.height / 2) : touch.clientX - (rect.left + rect.width / 2);
+}
+function getPosition(e, position) {
+  if ("touches" in e && e.touches.length) return e.touches[0][position];
+  else if ("changedTouches" in e && e.changedTouches.length) return e.changedTouches[0][position];
+  else return e[position];
+}
+const makeSliderProps = propsFactory({
+  disabled: {
+    type: Boolean,
+    default: null
+  },
+  error: Boolean,
+  readonly: {
+    type: Boolean,
+    default: null
+  },
+  max: {
+    type: [Number, String],
+    default: 100
+  },
+  min: {
+    type: [Number, String],
+    default: 0
+  },
+  step: {
+    type: [Number, String],
+    default: 0
+  },
+  thumbColor: String,
+  thumbLabel: {
+    type: [Boolean, String],
+    default: void 0,
+    validator: (v) => typeof v === "boolean" || v === "always" || v === "hover"
+  },
+  thumbSize: {
+    type: [Number, String],
+    default: 20
+  },
+  showTicks: {
+    type: [Boolean, String],
+    default: false,
+    validator: (v) => typeof v === "boolean" || v === "always"
+  },
+  ticks: {
+    type: [Array, Object]
+  },
+  tickSize: {
+    type: [Number, String],
+    default: 2
+  },
+  color: String,
+  trackColor: String,
+  trackFillColor: String,
+  trackSize: {
+    type: [Number, String],
+    default: 4
+  },
+  direction: {
+    type: String,
+    default: "horizontal",
+    validator: (v) => ["vertical", "horizontal"].includes(v)
+  },
+  reverse: Boolean,
+  noKeyboard: Boolean,
+  ...makeRoundedProps(),
+  ...makeElevationProps({
+    elevation: 1
+  }),
+  ripple: {
+    type: Boolean,
+    default: true
+  }
+}, "Slider");
+const useSteps = (props) => {
+  const min = computed(() => parseFloat(props.min));
+  const max = computed(() => parseFloat(props.max));
+  const step = computed(() => Number(props.step) > 0 ? parseFloat(props.step) : 0);
+  const decimals = computed(() => Math.max(getDecimals(step.value), getDecimals(min.value)));
+  function roundValue(value) {
+    value = parseFloat(value);
+    if (step.value <= 0) return value;
+    const clamped = clamp(value, min.value, max.value);
+    const offset = min.value % step.value;
+    let newValue = Math.round((clamped - offset) / step.value) * step.value + offset;
+    if (clamped > newValue && newValue + step.value > max.value) {
+      newValue = max.value;
+    }
+    return parseFloat(Math.min(newValue, max.value).toFixed(decimals.value));
+  }
+  return {
+    min,
+    max,
+    step,
+    decimals,
+    roundValue
+  };
+};
+const useSlider = ({
+  props,
+  steps,
+  onSliderStart,
+  onSliderMove,
+  onSliderEnd,
+  getActiveThumb
+}) => {
+  const form = useForm(props);
+  const {
+    isRtl
+  } = useRtl();
+  const isReversed = toRef(() => props.reverse);
+  const vertical = computed(() => props.direction === "vertical");
+  const indexFromEnd = computed(() => vertical.value !== isReversed.value);
+  const {
+    min,
+    max,
+    step,
+    decimals,
+    roundValue
+  } = steps;
+  const thumbSize = computed(() => parseInt(props.thumbSize, 10));
+  const tickSize = computed(() => parseInt(props.tickSize, 10));
+  const trackSize = computed(() => parseInt(props.trackSize, 10));
+  const numTicks = computed(() => (max.value - min.value) / step.value);
+  const thumbColor = computed(() => props.error || form.isDisabled.value ? void 0 : props.thumbColor ?? props.color);
+  const thumbLabelColor = computed(() => props.error || form.isDisabled.value ? void 0 : props.thumbColor);
+  const trackColor = computed(() => props.error || form.isDisabled.value ? void 0 : props.trackColor ?? props.color);
+  const trackFillColor = computed(() => props.error || form.isDisabled.value ? void 0 : props.trackFillColor ?? props.color);
+  const mousePressed = shallowRef(false);
+  const startOffset = shallowRef(0);
+  const trackContainerRef = ref();
+  const activeThumbRef = ref();
+  function parseMouseMove(e) {
+    const el = trackContainerRef.value?.$el;
+    if (!el) return;
+    const vertical2 = props.direction === "vertical";
+    const start = vertical2 ? "top" : "left";
+    const length = vertical2 ? "height" : "width";
+    const position2 = vertical2 ? "clientY" : "clientX";
+    const {
+      [start]: trackStart,
+      [length]: trackLength
+    } = el.getBoundingClientRect();
+    const clickOffset = getPosition(e, position2);
+    let clickPos = clamp((clickOffset - trackStart - startOffset.value) / trackLength) || 0;
+    if (vertical2 ? indexFromEnd.value : indexFromEnd.value !== isRtl.value) clickPos = 1 - clickPos;
+    return roundValue(min.value + clickPos * (max.value - min.value));
+  }
+  const handleStop = (e) => {
+    const value = parseMouseMove(e);
+    if (value != null) {
+      onSliderEnd({
+        value
+      });
+    }
+    mousePressed.value = false;
+    startOffset.value = 0;
+  };
+  const handleStart = (e) => {
+    const value = parseMouseMove(e);
+    activeThumbRef.value = getActiveThumb(e);
+    if (!activeThumbRef.value) return;
+    mousePressed.value = true;
+    if (activeThumbRef.value.contains(e.target)) {
+      startOffset.value = getOffset(e, activeThumbRef.value, props.direction);
+    } else {
+      startOffset.value = 0;
+      if (value != null) {
+        onSliderMove({
+          value
+        });
+      }
+    }
+    if (value != null) {
+      onSliderStart({
+        value
+      });
+    }
+    nextTick(() => activeThumbRef.value?.focus());
+  };
+  const moveListenerOptions = {
+    passive: true,
+    capture: true
+  };
+  function onMouseMove(e) {
+    const value = parseMouseMove(e);
+    if (value != null) {
+      onSliderMove({
+        value
+      });
+    }
+  }
+  function onSliderMouseUp(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    handleStop(e);
+    (void 0).removeEventListener("mousemove", onMouseMove, moveListenerOptions);
+    (void 0).removeEventListener("mouseup", onSliderMouseUp);
+  }
+  function onSliderTouchend(e) {
+    handleStop(e);
+    (void 0).removeEventListener("touchmove", onMouseMove, moveListenerOptions);
+    e.target?.removeEventListener("touchend", onSliderTouchend);
+  }
+  function onSliderTouchstart(e) {
+    handleStart(e);
+    (void 0).addEventListener("touchmove", onMouseMove, moveListenerOptions);
+    e.target?.addEventListener("touchend", onSliderTouchend, {
+      passive: false
+    });
+  }
+  function onSliderMousedown(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    handleStart(e);
+    (void 0).addEventListener("mousemove", onMouseMove, moveListenerOptions);
+    (void 0).addEventListener("mouseup", onSliderMouseUp, {
+      passive: false
+    });
+  }
+  onScopeDispose(() => {
+    return;
+  });
+  const position = (val) => {
+    const percentage = (val - min.value) / (max.value - min.value) * 100;
+    return clamp(isNaN(percentage) ? 0 : percentage, 0, 100);
+  };
+  const showTicks = toRef(() => props.showTicks);
+  const parsedTicks = computed(() => {
+    if (!showTicks.value) return [];
+    if (!props.ticks) {
+      return numTicks.value !== Infinity ? createRange(numTicks.value + 1).map((t) => {
+        const value = min.value + t * step.value;
+        return {
+          value,
+          position: position(value)
+        };
+      }) : [];
+    }
+    if (Array.isArray(props.ticks)) return props.ticks.map((t) => ({
+      value: t,
+      position: position(t),
+      label: t.toString()
+    }));
+    return Object.keys(props.ticks).map((key) => ({
+      value: parseFloat(key),
+      position: position(parseFloat(key)),
+      label: props.ticks[key]
+    }));
+  });
+  const hasLabels = computed(() => parsedTicks.value.some(({
+    label
+  }) => !!label));
+  const data = {
+    activeThumbRef,
+    color: toRef(() => props.color),
+    decimals,
+    disabled: form.isDisabled,
+    direction: toRef(() => props.direction),
+    elevation: toRef(() => props.elevation),
+    hasLabels,
+    isReversed,
+    indexFromEnd,
+    min,
+    max,
+    mousePressed,
+    noKeyboard: toRef(() => props.noKeyboard),
+    numTicks,
+    onSliderMousedown,
+    onSliderTouchstart,
+    parsedTicks,
+    parseMouseMove,
+    position,
+    readonly: form.isReadonly,
+    rounded: toRef(() => props.rounded),
+    roundValue,
+    showTicks,
+    startOffset,
+    step,
+    thumbSize,
+    thumbColor,
+    thumbLabelColor,
+    thumbLabel: toRef(() => props.thumbLabel),
+    ticks: toRef(() => props.ticks),
+    tickSize,
+    trackColor,
+    trackContainerRef,
+    trackFillColor,
+    trackSize,
+    vertical
+  };
+  provide(VSliderSymbol, data);
+  return data;
+};
+const makeVSliderThumbProps = propsFactory({
+  focused: Boolean,
+  max: {
+    type: Number,
+    required: true
+  },
+  min: {
+    type: Number,
+    required: true
+  },
+  modelValue: {
+    type: Number,
+    required: true
+  },
+  position: {
+    type: Number,
+    required: true
+  },
+  ripple: {
+    type: [Boolean, Object],
+    default: true
+  },
+  name: String,
+  noKeyboard: Boolean,
+  ...makeComponentProps()
+}, "VSliderThumb");
+const VSliderThumb = genericComponent()({
+  name: "VSliderThumb",
+  directives: {
+    vRipple: Ripple
+  },
+  props: makeVSliderThumbProps(),
+  emits: {
+    "update:modelValue": (v) => true
+  },
+  setup(props, {
+    slots,
+    emit
+  }) {
+    const slider = inject(VSliderSymbol);
+    const {
+      isRtl,
+      rtlClasses
+    } = useRtl();
+    if (!slider) throw new Error("[Vuetify] v-slider-thumb must be used inside v-slider or v-range-slider");
+    const {
+      min,
+      max,
+      thumbColor,
+      thumbLabelColor,
+      step,
+      disabled,
+      thumbSize,
+      thumbLabel,
+      direction,
+      isReversed,
+      vertical,
+      readonly,
+      elevation,
+      mousePressed,
+      decimals,
+      indexFromEnd
+    } = slider;
+    const isHovered = shallowRef(false);
+    const isHidden = shallowRef(false);
+    const elevationProps = computed(() => !disabled.value ? elevation.value : void 0);
+    const {
+      elevationClasses
+    } = useElevation(elevationProps);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(thumbColor);
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(thumbLabelColor);
+    const {
+      pageup,
+      pagedown,
+      end,
+      home,
+      left,
+      right,
+      down,
+      up
+    } = keyValues;
+    const relevantKeys = [pageup, pagedown, end, home, left, right, down, up];
+    const multipliers = computed(() => {
+      if (step.value) return [1, 2, 3];
+      else return [1, 5, 10];
+    });
+    function parseKeydown(e, value) {
+      if (props.noKeyboard || disabled.value) return;
+      if (!relevantKeys.includes(e.key)) return;
+      e.preventDefault();
+      const _step = step.value || 0.1;
+      const steps = (max.value - min.value) / _step;
+      if ([left, right, down, up].includes(e.key)) {
+        const increase = vertical.value ? [isRtl.value ? left : right, isReversed.value ? down : up] : indexFromEnd.value !== isRtl.value ? [left, up] : [right, up];
+        const direction2 = increase.includes(e.key) ? 1 : -1;
+        const multiplier = e.shiftKey ? 2 : e.ctrlKey ? 1 : 0;
+        if (direction2 === -1 && value === max.value && !multiplier && !Number.isInteger(steps)) {
+          value = value - steps % 1 * _step;
+        } else {
+          value = value + direction2 * _step * multipliers.value[multiplier];
+        }
+      } else if (e.key === home) {
+        value = min.value;
+      } else if (e.key === end) {
+        value = max.value;
+      } else {
+        const direction2 = e.key === pagedown ? 1 : -1;
+        value = value - direction2 * _step * (steps > 100 ? steps / 10 : 10);
+      }
+      return Math.max(props.min, Math.min(props.max, value));
+    }
+    function onKeydown(e) {
+      const newValue = parseKeydown(e, props.modelValue);
+      if (newValue != null) {
+        isHidden.value = false;
+        emit("update:modelValue", newValue);
+      }
+    }
+    watch(() => props.focused, (val) => {
+      if (val) {
+        isHidden.value = false;
+      }
+    });
+    useRender(() => {
+      const positionPercentage = convertToUnit(indexFromEnd.value ? 100 - props.position : props.position, "%");
+      const thumbLabelVisible = thumbLabel.value === "always" || thumbLabel.value === true && props.focused || thumbLabel.value === "hover" && (isHovered.value || props.focused && !isHidden.value);
+      return createElementVNode("div", {
+        "class": normalizeClass(["v-slider-thumb", {
+          "v-slider-thumb--focused": props.focused,
+          "v-slider-thumb--pressed": props.focused && mousePressed.value
+        }, props.class, rtlClasses.value]),
+        "style": normalizeStyle([{
+          "--v-slider-thumb-position": positionPercentage,
+          "--v-slider-thumb-size": convertToUnit(thumbSize.value)
+        }, props.style]),
+        "role": "slider",
+        "tabindex": disabled.value ? -1 : 0,
+        "aria-label": props.name,
+        "aria-valuemin": min.value,
+        "aria-valuemax": max.value,
+        "aria-valuenow": props.modelValue,
+        "aria-readonly": !!readonly.value,
+        "aria-orientation": direction.value,
+        "onKeydown": !readonly.value ? onKeydown : void 0,
+        "onMouseenter": () => {
+          isHovered.value = true;
+        },
+        "onMouseleave": () => {
+          isHovered.value = false;
+          isHidden.value = true;
+        }
+      }, [createElementVNode("div", {
+        "class": normalizeClass(["v-slider-thumb__surface", textColorClasses.value, elevationClasses.value]),
+        "style": normalizeStyle(textColorStyles.value)
+      }, null), withDirectives(createElementVNode("div", {
+        "class": normalizeClass(["v-slider-thumb__ripple", textColorClasses.value]),
+        "style": normalizeStyle(textColorStyles.value)
+      }, null), [[Ripple, props.ripple, null, {
+        circle: true,
+        center: true
+      }]]), createVNode(VScaleTransition, {
+        "origin": "bottom center"
+      }, {
+        default: () => [withDirectives(createElementVNode("div", {
+          "class": "v-slider-thumb__label-container"
+        }, [createElementVNode("div", {
+          "class": normalizeClass(["v-slider-thumb__label", backgroundColorClasses.value]),
+          "style": normalizeStyle(backgroundColorStyles.value)
+        }, [createElementVNode("div", null, [slots["thumb-label"]?.({
+          modelValue: props.modelValue
+        }) ?? props.modelValue.toFixed(step.value ? decimals.value : 1)]), createElementVNode("div", {
+          "class": "v-slider-thumb__label-wedge"
+        }, null)])]), [[vShow, thumbLabelVisible]])]
+      })]);
+    });
+    return {};
+  }
+});
+const makeVSliderTrackProps = propsFactory({
+  start: {
+    type: Number,
+    required: true
+  },
+  stop: {
+    type: Number,
+    required: true
+  },
+  ...makeComponentProps()
+}, "VSliderTrack");
+const VSliderTrack = genericComponent()({
+  name: "VSliderTrack",
+  props: makeVSliderTrackProps(),
+  emits: {},
+  setup(props, {
+    slots
+  }) {
+    const slider = inject(VSliderSymbol);
+    if (!slider) throw new Error("[Vuetify] v-slider-track must be inside v-slider or v-range-slider");
+    const {
+      color,
+      parsedTicks,
+      rounded,
+      showTicks,
+      tickSize,
+      trackColor,
+      trackFillColor,
+      trackSize,
+      vertical,
+      min,
+      max,
+      indexFromEnd
+    } = slider;
+    const {
+      roundedClasses
+    } = useRounded(rounded);
+    const {
+      backgroundColorClasses: trackFillColorClasses,
+      backgroundColorStyles: trackFillColorStyles
+    } = useBackgroundColor(trackFillColor);
+    const {
+      backgroundColorClasses: trackColorClasses,
+      backgroundColorStyles: trackColorStyles
+    } = useBackgroundColor(trackColor);
+    const startDir = computed(() => `inset-${vertical.value ? "block" : "inline"}-${indexFromEnd.value ? "end" : "start"}`);
+    const endDir = computed(() => vertical.value ? "height" : "width");
+    const backgroundStyles = computed(() => {
+      return {
+        [startDir.value]: "0%",
+        [endDir.value]: "100%"
+      };
+    });
+    const trackFillWidth = computed(() => props.stop - props.start);
+    const trackFillStyles = computed(() => {
+      return {
+        [startDir.value]: convertToUnit(props.start, "%"),
+        [endDir.value]: convertToUnit(trackFillWidth.value, "%")
+      };
+    });
+    const computedTicks = computed(() => {
+      if (!showTicks.value) return [];
+      const ticks = vertical.value ? parsedTicks.value.slice().reverse() : parsedTicks.value;
+      return ticks.map((tick, index) => {
+        const directionValue = tick.value !== min.value && tick.value !== max.value ? convertToUnit(tick.position, "%") : void 0;
+        return createElementVNode("div", {
+          "key": tick.value,
+          "class": normalizeClass(["v-slider-track__tick", {
+            "v-slider-track__tick--filled": tick.position >= props.start && tick.position <= props.stop,
+            "v-slider-track__tick--first": tick.value === min.value,
+            "v-slider-track__tick--last": tick.value === max.value
+          }]),
+          "style": {
+            [startDir.value]: directionValue
+          }
+        }, [(tick.label || slots["tick-label"]) && createElementVNode("div", {
+          "class": "v-slider-track__tick-label"
+        }, [slots["tick-label"]?.({
+          tick,
+          index
+        }) ?? tick.label])]);
+      });
+    });
+    useRender(() => {
+      return createElementVNode("div", {
+        "class": normalizeClass(["v-slider-track", roundedClasses.value, props.class]),
+        "style": normalizeStyle([{
+          "--v-slider-track-size": convertToUnit(trackSize.value),
+          "--v-slider-tick-size": convertToUnit(tickSize.value)
+        }, props.style])
+      }, [createElementVNode("div", {
+        "class": normalizeClass(["v-slider-track__background", trackColorClasses.value, {
+          "v-slider-track__background--opacity": !!color.value || !trackFillColor.value
+        }]),
+        "style": {
+          ...backgroundStyles.value,
+          ...trackColorStyles.value
+        }
+      }, null), createElementVNode("div", {
+        "class": normalizeClass(["v-slider-track__fill", trackFillColorClasses.value]),
+        "style": {
+          ...trackFillStyles.value,
+          ...trackFillColorStyles.value
+        }
+      }, null), showTicks.value && createElementVNode("div", {
+        "class": normalizeClass(["v-slider-track__ticks", {
+          "v-slider-track__ticks--always-show": showTicks.value === "always"
+        }])
+      }, [computedTicks.value])]);
+    });
+    return {};
+  }
+});
+const makeVSliderProps = propsFactory({
+  ...makeFocusProps(),
+  ...makeSliderProps(),
+  ...makeVInputProps(),
+  modelValue: {
+    type: [Number, String],
+    default: 0
+  }
+}, "VSlider");
+const VSlider = genericComponent()({
+  name: "VSlider",
+  inheritAttrs: false,
+  props: makeVSliderProps(),
+  emits: {
+    "update:focused": (value) => true,
+    "update:modelValue": (v) => true,
+    start: (value) => true,
+    end: (value) => true
+  },
+  setup(props, {
+    slots,
+    emit,
+    attrs
+  }) {
+    const thumbContainerRef = ref();
+    const inputRef = ref();
+    const {
+      rtlClasses
+    } = useRtl();
+    const steps = useSteps(props);
+    const model = useProxiedModel(props, "modelValue", void 0, (value) => {
+      return steps.roundValue(value == null ? steps.min.value : value);
+    });
+    const {
+      min,
+      max,
+      mousePressed,
+      roundValue,
+      onSliderMousedown,
+      onSliderTouchstart,
+      trackContainerRef,
+      position,
+      hasLabels,
+      disabled,
+      readonly,
+      noKeyboard
+    } = useSlider({
+      props,
+      steps,
+      onSliderStart: () => {
+        if (!disabled.value && !readonly.value) {
+          emit("start", model.value);
+        }
+      },
+      onSliderEnd: ({
+        value
+      }) => {
+        const roundedValue = roundValue(value);
+        if (!disabled.value && !readonly.value) {
+          model.value = roundedValue;
+        }
+        emit("end", roundedValue);
+      },
+      onSliderMove: ({
+        value
+      }) => {
+        if (!disabled.value && !readonly.value) {
+          model.value = roundValue(value);
+        }
+      },
+      getActiveThumb: () => thumbContainerRef.value?.$el
+    });
+    const {
+      isFocused,
+      focus,
+      blur
+    } = useFocus(props);
+    const trackStop = computed(() => position(model.value));
+    useRender(() => {
+      const inputProps = VInput.filterProps(props);
+      const [rootAttrs, inputAttrs] = filterInputAttrs(attrs);
+      const hasPrepend = !!(props.label || slots.label || slots.prepend);
+      return createVNode(VInput, mergeProps({
+        "ref": inputRef,
+        "class": ["v-slider", {
+          "v-slider--has-labels": !!slots["tick-label"] || hasLabels.value,
+          "v-slider--focused": isFocused.value,
+          "v-slider--pressed": mousePressed.value,
+          "v-slider--disabled": disabled.value
+        }, rtlClasses.value, props.class],
+        "style": props.style
+      }, inputProps, rootAttrs, {
+        "focused": isFocused.value
+      }), {
+        ...slots,
+        prepend: hasPrepend ? (slotProps) => createElementVNode(Fragment, null, [slots.label?.(slotProps) ?? (props.label ? createVNode(VLabel, {
+          "id": slotProps.id.value,
+          "class": "v-slider__label",
+          "text": props.label
+        }, null) : void 0), slots.prepend?.(slotProps)]) : void 0,
+        default: ({
+          id,
+          messagesId
+        }) => createElementVNode("div", {
+          "class": "v-slider__container",
+          "onMousedown": !readonly.value ? onSliderMousedown : void 0,
+          "onTouchstartPassive": !readonly.value ? onSliderTouchstart : void 0
+        }, [createElementVNode("input", {
+          "id": id.value,
+          "name": props.name || id.value,
+          "disabled": disabled.value,
+          "readonly": readonly.value,
+          "tabindex": "-1",
+          "value": model.value
+        }, null), createVNode(VSliderTrack, {
+          "ref": trackContainerRef,
+          "start": 0,
+          "stop": trackStop.value
+        }, {
+          "tick-label": slots["tick-label"]
+        }), createVNode(VSliderThumb, mergeProps({
+          "ref": thumbContainerRef,
+          "aria-describedby": messagesId.value,
+          "focused": isFocused.value,
+          "noKeyboard": noKeyboard.value,
+          "min": min.value,
+          "max": max.value,
+          "modelValue": model.value,
+          "onUpdate:modelValue": (v) => model.value = v,
+          "position": trackStop.value,
+          "elevation": props.elevation,
+          "onFocus": focus,
+          "onBlur": blur,
+          "ripple": props.ripple,
+          "name": props.name
+        }, inputAttrs), {
+          "thumb-label": slots["thumb-label"]
+        })])
+      });
+    });
+    return forwardRefs({
+      focus: () => thumbContainerRef.value?.$el.focus()
+    }, inputRef);
+  }
+});
+const makeVColorPickerPreviewProps = propsFactory({
+  color: {
+    type: Object
+  },
+  disabled: Boolean,
+  readonly: Boolean,
+  hideAlpha: Boolean,
+  hideEyeDropper: Boolean,
+  eyeDropperIcon: {
+    type: IconValue,
+    default: "$eyeDropper"
+  },
+  ...makeComponentProps()
+}, "VColorPickerPreview");
+const VColorPickerPreview = defineComponent$1({
+  name: "VColorPickerPreview",
+  props: makeVColorPickerPreviewProps(),
+  emits: {
+    "update:color": (color) => true
+  },
+  setup(props, {
+    emit
+  }) {
+    const {
+      t
+    } = useLocale();
+    new AbortController();
+    toRef(() => !props.disabled && !props.readonly);
+    useRender(() => createElementVNode("div", {
+      "class": normalizeClass(["v-color-picker-preview", {
+        "v-color-picker-preview--hide-alpha": props.hideAlpha
+      }, props.class]),
+      "style": normalizeStyle(props.style)
+    }, [SUPPORTS_EYE_DROPPER, createElementVNode("div", {
+      "class": "v-color-picker-preview__dot"
+    }, [createElementVNode("div", {
+      "style": {
+        background: HSVtoCSS(props.color ?? nullColor)
+      }
+    }, null)]), createElementVNode("div", {
+      "class": "v-color-picker-preview__sliders"
+    }, [createVNode(VSlider, {
+      "class": "v-color-picker-preview__track v-color-picker-preview__hue",
+      "aria-label": t("$vuetify.colorPicker.ariaLabel.hueSlider"),
+      "modelValue": props.color?.h,
+      "onUpdate:modelValue": (h) => emit("update:color", {
+        ...props.color ?? nullColor,
+        h
+      }),
+      "step": 1,
+      "min": 0,
+      "max": 360,
+      "disabled": props.disabled,
+      "readonly": props.readonly,
+      "thumbSize": 14,
+      "trackSize": 8,
+      "trackFillColor": "white",
+      "hideDetails": true
+    }, null), !props.hideAlpha && createVNode(VSlider, {
+      "class": "v-color-picker-preview__track v-color-picker-preview__alpha",
+      "aria-label": t("$vuetify.colorPicker.ariaLabel.alphaSlider"),
+      "modelValue": props.color?.a ?? 1,
+      "onUpdate:modelValue": (a) => emit("update:color", {
+        ...props.color ?? nullColor,
+        a
+      }),
+      "step": 0.01,
+      "min": 0,
+      "max": 1,
+      "disabled": props.disabled,
+      "readonly": props.readonly,
+      "thumbSize": 14,
+      "trackSize": 8,
+      "trackFillColor": "white",
+      "hideDetails": true
+    }, null)])]));
+    return {};
+  }
+});
+const red = {
+  base: "#f44336",
+  lighten5: "#ffebee",
+  lighten4: "#ffcdd2",
+  lighten3: "#ef9a9a",
+  lighten2: "#e57373",
+  lighten1: "#ef5350",
+  darken1: "#e53935",
+  darken2: "#d32f2f",
+  darken3: "#c62828",
+  darken4: "#b71c1c",
+  accent1: "#ff8a80",
+  accent2: "#ff5252",
+  accent3: "#ff1744",
+  accent4: "#d50000"
+};
+const pink = {
+  base: "#e91e63",
+  lighten5: "#fce4ec",
+  lighten4: "#f8bbd0",
+  lighten3: "#f48fb1",
+  lighten2: "#f06292",
+  lighten1: "#ec407a",
+  darken1: "#d81b60",
+  darken2: "#c2185b",
+  darken3: "#ad1457",
+  darken4: "#880e4f",
+  accent1: "#ff80ab",
+  accent2: "#ff4081",
+  accent3: "#f50057",
+  accent4: "#c51162"
+};
+const purple = {
+  base: "#9c27b0",
+  lighten5: "#f3e5f5",
+  lighten4: "#e1bee7",
+  lighten3: "#ce93d8",
+  lighten2: "#ba68c8",
+  lighten1: "#ab47bc",
+  darken1: "#8e24aa",
+  darken2: "#7b1fa2",
+  darken3: "#6a1b9a",
+  darken4: "#4a148c",
+  accent1: "#ea80fc",
+  accent2: "#e040fb",
+  accent3: "#d500f9",
+  accent4: "#aa00ff"
+};
+const deepPurple = {
+  base: "#673ab7",
+  lighten5: "#ede7f6",
+  lighten4: "#d1c4e9",
+  lighten3: "#b39ddb",
+  lighten2: "#9575cd",
+  lighten1: "#7e57c2",
+  darken1: "#5e35b1",
+  darken2: "#512da8",
+  darken3: "#4527a0",
+  darken4: "#311b92",
+  accent1: "#b388ff",
+  accent2: "#7c4dff",
+  accent3: "#651fff",
+  accent4: "#6200ea"
+};
+const indigo = {
+  base: "#3f51b5",
+  lighten5: "#e8eaf6",
+  lighten4: "#c5cae9",
+  lighten3: "#9fa8da",
+  lighten2: "#7986cb",
+  lighten1: "#5c6bc0",
+  darken1: "#3949ab",
+  darken2: "#303f9f",
+  darken3: "#283593",
+  darken4: "#1a237e",
+  accent1: "#8c9eff",
+  accent2: "#536dfe",
+  accent3: "#3d5afe",
+  accent4: "#304ffe"
+};
+const blue = {
+  base: "#2196f3",
+  lighten5: "#e3f2fd",
+  lighten4: "#bbdefb",
+  lighten3: "#90caf9",
+  lighten2: "#64b5f6",
+  lighten1: "#42a5f5",
+  darken1: "#1e88e5",
+  darken2: "#1976d2",
+  darken3: "#1565c0",
+  darken4: "#0d47a1",
+  accent1: "#82b1ff",
+  accent2: "#448aff",
+  accent3: "#2979ff",
+  accent4: "#2962ff"
+};
+const lightBlue = {
+  base: "#03a9f4",
+  lighten5: "#e1f5fe",
+  lighten4: "#b3e5fc",
+  lighten3: "#81d4fa",
+  lighten2: "#4fc3f7",
+  lighten1: "#29b6f6",
+  darken1: "#039be5",
+  darken2: "#0288d1",
+  darken3: "#0277bd",
+  darken4: "#01579b",
+  accent1: "#80d8ff",
+  accent2: "#40c4ff",
+  accent3: "#00b0ff",
+  accent4: "#0091ea"
+};
+const cyan = {
+  base: "#00bcd4",
+  lighten5: "#e0f7fa",
+  lighten4: "#b2ebf2",
+  lighten3: "#80deea",
+  lighten2: "#4dd0e1",
+  lighten1: "#26c6da",
+  darken1: "#00acc1",
+  darken2: "#0097a7",
+  darken3: "#00838f",
+  darken4: "#006064",
+  accent1: "#84ffff",
+  accent2: "#18ffff",
+  accent3: "#00e5ff",
+  accent4: "#00b8d4"
+};
+const teal = {
+  base: "#009688",
+  lighten5: "#e0f2f1",
+  lighten4: "#b2dfdb",
+  lighten3: "#80cbc4",
+  lighten2: "#4db6ac",
+  lighten1: "#26a69a",
+  darken1: "#00897b",
+  darken2: "#00796b",
+  darken3: "#00695c",
+  darken4: "#004d40",
+  accent1: "#a7ffeb",
+  accent2: "#64ffda",
+  accent3: "#1de9b6",
+  accent4: "#00bfa5"
+};
+const green = {
+  base: "#4caf50",
+  lighten5: "#e8f5e9",
+  lighten4: "#c8e6c9",
+  lighten3: "#a5d6a7",
+  lighten2: "#81c784",
+  lighten1: "#66bb6a",
+  darken1: "#43a047",
+  darken2: "#388e3c",
+  darken3: "#2e7d32",
+  darken4: "#1b5e20",
+  accent1: "#b9f6ca",
+  accent2: "#69f0ae",
+  accent3: "#00e676",
+  accent4: "#00c853"
+};
+const lightGreen = {
+  base: "#8bc34a",
+  lighten5: "#f1f8e9",
+  lighten4: "#dcedc8",
+  lighten3: "#c5e1a5",
+  lighten2: "#aed581",
+  lighten1: "#9ccc65",
+  darken1: "#7cb342",
+  darken2: "#689f38",
+  darken3: "#558b2f",
+  darken4: "#33691e",
+  accent1: "#ccff90",
+  accent2: "#b2ff59",
+  accent3: "#76ff03",
+  accent4: "#64dd17"
+};
+const lime = {
+  base: "#cddc39",
+  lighten5: "#f9fbe7",
+  lighten4: "#f0f4c3",
+  lighten3: "#e6ee9c",
+  lighten2: "#dce775",
+  lighten1: "#d4e157",
+  darken1: "#c0ca33",
+  darken2: "#afb42b",
+  darken3: "#9e9d24",
+  darken4: "#827717",
+  accent1: "#f4ff81",
+  accent2: "#eeff41",
+  accent3: "#c6ff00",
+  accent4: "#aeea00"
+};
+const yellow = {
+  base: "#ffeb3b",
+  lighten5: "#fffde7",
+  lighten4: "#fff9c4",
+  lighten3: "#fff59d",
+  lighten2: "#fff176",
+  lighten1: "#ffee58",
+  darken1: "#fdd835",
+  darken2: "#fbc02d",
+  darken3: "#f9a825",
+  darken4: "#f57f17",
+  accent1: "#ffff8d",
+  accent2: "#ffff00",
+  accent3: "#ffea00",
+  accent4: "#ffd600"
+};
+const amber = {
+  base: "#ffc107",
+  lighten5: "#fff8e1",
+  lighten4: "#ffecb3",
+  lighten3: "#ffe082",
+  lighten2: "#ffd54f",
+  lighten1: "#ffca28",
+  darken1: "#ffb300",
+  darken2: "#ffa000",
+  darken3: "#ff8f00",
+  darken4: "#ff6f00",
+  accent1: "#ffe57f",
+  accent2: "#ffd740",
+  accent3: "#ffc400",
+  accent4: "#ffab00"
+};
+const orange = {
+  base: "#ff9800",
+  lighten5: "#fff3e0",
+  lighten4: "#ffe0b2",
+  lighten3: "#ffcc80",
+  lighten2: "#ffb74d",
+  lighten1: "#ffa726",
+  darken1: "#fb8c00",
+  darken2: "#f57c00",
+  darken3: "#ef6c00",
+  darken4: "#e65100",
+  accent1: "#ffd180",
+  accent2: "#ffab40",
+  accent3: "#ff9100",
+  accent4: "#ff6d00"
+};
+const deepOrange = {
+  base: "#ff5722",
+  lighten5: "#fbe9e7",
+  lighten4: "#ffccbc",
+  lighten3: "#ffab91",
+  lighten2: "#ff8a65",
+  lighten1: "#ff7043",
+  darken1: "#f4511e",
+  darken2: "#e64a19",
+  darken3: "#d84315",
+  darken4: "#bf360c",
+  accent1: "#ff9e80",
+  accent2: "#ff6e40",
+  accent3: "#ff3d00",
+  accent4: "#dd2c00"
+};
+const brown = {
+  base: "#795548",
+  lighten5: "#efebe9",
+  lighten4: "#d7ccc8",
+  lighten3: "#bcaaa4",
+  lighten2: "#a1887f",
+  lighten1: "#8d6e63",
+  darken1: "#6d4c41",
+  darken2: "#5d4037",
+  darken3: "#4e342e",
+  darken4: "#3e2723"
+};
+const blueGrey = {
+  base: "#607d8b",
+  lighten5: "#eceff1",
+  lighten4: "#cfd8dc",
+  lighten3: "#b0bec5",
+  lighten2: "#90a4ae",
+  lighten1: "#78909c",
+  darken1: "#546e7a",
+  darken2: "#455a64",
+  darken3: "#37474f",
+  darken4: "#263238"
+};
+const grey = {
+  base: "#9e9e9e",
+  lighten5: "#fafafa",
+  lighten4: "#f5f5f5",
+  lighten3: "#eeeeee",
+  lighten2: "#e0e0e0",
+  lighten1: "#bdbdbd",
+  darken1: "#757575",
+  darken2: "#616161",
+  darken3: "#424242",
+  darken4: "#212121"
+};
+const shades = {
+  black: "#000000",
+  white: "#ffffff",
+  transparent: "#ffffff00"
+};
+const colors = {
+  red,
+  pink,
+  purple,
+  deepPurple,
+  indigo,
+  blue,
+  lightBlue,
+  cyan,
+  teal,
+  green,
+  lightGreen,
+  lime,
+  yellow,
+  amber,
+  orange,
+  deepOrange,
+  brown,
+  blueGrey,
+  grey,
+  shades
+};
+const makeVColorPickerSwatchesProps = propsFactory({
+  swatches: {
+    type: Array,
+    default: () => parseDefaultColors(colors)
+  },
+  disabled: Boolean,
+  readonly: Boolean,
+  color: Object,
+  maxHeight: [Number, String],
+  ...makeComponentProps()
+}, "VColorPickerSwatches");
+function parseDefaultColors(colors2) {
+  return Object.keys(colors2).map((key) => {
+    const color = colors2[key];
+    return color.base ? [color.base, color.darken4, color.darken3, color.darken2, color.darken1, color.lighten1, color.lighten2, color.lighten3, color.lighten4, color.lighten5] : [color.black, color.white, color.transparent];
+  });
+}
+const VColorPickerSwatches = defineComponent$1({
+  name: "VColorPickerSwatches",
+  props: makeVColorPickerSwatchesProps(),
+  emits: {
+    "update:color": (color) => true
+  },
+  setup(props, {
+    emit
+  }) {
+    const isInteractive = toRef(() => !props.disabled && !props.readonly);
+    function onSwatchClick(hsva) {
+      if (!isInteractive.value || !hsva) {
+        return;
+      }
+      emit("update:color", hsva);
+    }
+    useRender(() => createElementVNode("div", {
+      "class": normalizeClass(["v-color-picker-swatches", props.class]),
+      "style": normalizeStyle([{
+        maxHeight: convertToUnit(props.maxHeight)
+      }, props.style])
+    }, [createElementVNode("div", null, [props.swatches.map((swatch) => createElementVNode("div", {
+      "class": "v-color-picker-swatches__swatch"
+    }, [swatch.map((color) => {
+      const rgba2 = parseColor(color);
+      const hsva = RGBtoHSV(rgba2);
+      const background = RGBtoCSS(rgba2);
+      return createElementVNode("div", {
+        "class": normalizeClass(["v-color-picker-swatches__color", {
+          "v-color-picker-swatches__color--disabled": props.disabled
+        }]),
+        "onClick": () => onSwatchClick(hsva)
+      }, [createElementVNode("div", {
+        "style": {
+          background
+        }
+      }, [props.color && deepEqual(props.color, hsva) ? createVNode(VIcon, {
+        "size": "x-small",
+        "icon": "$success",
+        "color": getContrast(color, "#FFFFFF") > 2 ? "white" : "black"
+      }, null) : void 0])]);
+    })]))])]));
+    return {};
+  }
+});
+const VPickerTitle = createSimpleFunctional("v-picker-title");
+const makeVPickerProps = propsFactory({
+  bgColor: String,
+  divided: Boolean,
+  landscape: Boolean,
+  title: String,
+  hideHeader: Boolean,
+  hideTitle: Boolean,
+  ...makeVSheetProps()
+}, "VPicker");
+const VPicker = genericComponent()({
+  name: "VPicker",
+  props: makeVPickerProps(),
+  setup(props, {
+    slots
+  }) {
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.color);
+    useRender(() => {
+      const sheetProps = VSheet.filterProps(props);
+      const hasTitle = !props.hideTitle && !!(props.title || slots.title);
+      return createVNode(VSheet, mergeProps(sheetProps, {
+        "color": props.bgColor,
+        "class": ["v-picker", {
+          "v-picker--divided": props.divided,
+          "v-picker--landscape": props.landscape,
+          "v-picker--with-actions": !!slots.actions
+        }, props.class],
+        "style": props.style
+      }), {
+        default: () => [!props.hideHeader && createElementVNode("div", {
+          "key": "header",
+          "class": normalizeClass(["v-picker__header-wrapper", backgroundColorClasses.value]),
+          "style": normalizeStyle([backgroundColorStyles.value])
+        }, [hasTitle && createVNode(VPickerTitle, {
+          "key": "picker-title"
+        }, {
+          default: () => [slots.title?.() ?? props.title]
+        }), slots.header && createElementVNode("div", {
+          "class": "v-picker__header"
+        }, [slots.header()])]), createElementVNode("div", {
+          "class": "v-picker__body"
+        }, [slots.default?.()]), slots.actions && createVNode(VDefaultsProvider, {
+          "defaults": {
+            VBtn: {
+              slim: true,
+              variant: "text"
+            }
+          }
+        }, {
+          default: () => [createElementVNode("div", {
+            "class": "v-picker__actions"
+          }, [slots.actions()])]
+        })]
+      });
+    });
+    return {};
+  }
+});
+const makeVColorPickerProps = propsFactory({
+  canvasHeight: {
+    type: [String, Number],
+    default: 150
+  },
+  disabled: Boolean,
+  dotSize: {
+    type: [Number, String],
+    default: 10
+  },
+  hideCanvas: Boolean,
+  hideSliders: Boolean,
+  hideInputs: Boolean,
+  mode: {
+    type: String,
+    default: "rgba",
+    validator: (v) => Object.keys(modes).includes(v)
+  },
+  modes: {
+    type: Array,
+    default: () => Object.keys(modes),
+    validator: (v) => Array.isArray(v) && v.every((m) => Object.keys(modes).includes(m))
+  },
+  showSwatches: Boolean,
+  readonly: Boolean,
+  swatches: Array,
+  swatchesMaxHeight: {
+    type: [Number, String],
+    default: 150
+  },
+  modelValue: {
+    type: [Object, String]
+  },
+  ...makeVPickerProps({
+    hideHeader: true
+  }),
+  ...pick(makeVColorPickerPreviewProps(), ["hideEyeDropper", "eyeDropperIcon"])
+}, "VColorPicker");
+const VColorPicker = defineComponent$1({
+  name: "VColorPicker",
+  props: makeVColorPickerProps(),
+  emits: {
+    "update:modelValue": (color) => true,
+    "update:mode": (mode) => true
+  },
+  setup(props, {
+    slots
+  }) {
+    const mode = useProxiedModel(props, "mode");
+    const hue = ref(null);
+    const model = useProxiedModel(props, "modelValue", void 0, (v) => {
+      if (v == null || v === "") return null;
+      let c;
+      try {
+        c = RGBtoHSV(parseColor(v));
+      } catch (err) {
+        consoleWarn(err);
+        return null;
+      }
+      return c;
+    }, (v) => {
+      if (!v) return null;
+      return extractColor(v, props.modelValue);
+    });
+    const currentColor = computed(() => {
+      return model.value ? {
+        ...model.value,
+        h: hue.value ?? model.value.h
+      } : null;
+    });
+    const {
+      rtlClasses
+    } = useRtl();
+    let externalChange = true;
+    watch(model, (v) => {
+      if (!externalChange) {
+        externalChange = true;
+        return;
+      }
+      if (!v) return;
+      hue.value = v.h;
+    }, {
+      immediate: true
+    });
+    const updateColor = (hsva) => {
+      externalChange = false;
+      hue.value = hsva.h;
+      model.value = hsva;
+    };
+    provideDefaults({
+      VSlider: {
+        color: null,
+        trackColor: null,
+        trackFillColor: null
+      }
+    });
+    useRender(() => {
+      const pickerProps = VPicker.filterProps(props);
+      return createVNode(VPicker, mergeProps(pickerProps, {
+        "class": ["v-color-picker", rtlClasses.value, props.class],
+        "style": [{
+          "--v-color-picker-color-hsv": HSVtoCSS({
+            ...currentColor.value ?? nullColor,
+            a: 1
+          })
+        }, props.style]
+      }), {
+        ...slots,
+        default: () => createElementVNode(Fragment, null, [!props.hideCanvas && createVNode(VColorPickerCanvas, {
+          "key": "canvas",
+          "color": currentColor.value,
+          "onUpdate:color": updateColor,
+          "disabled": props.disabled,
+          "readonly": props.readonly,
+          "dotSize": props.dotSize,
+          "width": props.width,
+          "height": props.canvasHeight
+        }, null), (!props.hideSliders || !props.hideInputs) && createElementVNode("div", {
+          "key": "controls",
+          "class": "v-color-picker__controls"
+        }, [!props.hideSliders && createVNode(VColorPickerPreview, {
+          "key": "preview",
+          "color": currentColor.value,
+          "onUpdate:color": updateColor,
+          "hideAlpha": !mode.value.endsWith("a"),
+          "disabled": props.disabled,
+          "readonly": props.readonly,
+          "hideEyeDropper": props.hideEyeDropper,
+          "eyeDropperIcon": props.eyeDropperIcon
+        }, null), !props.hideInputs && createVNode(VColorPickerEdit, {
+          "key": "edit",
+          "modes": props.modes,
+          "mode": mode.value,
+          "onUpdate:mode": (m) => mode.value = m,
+          "color": currentColor.value,
+          "onUpdate:color": updateColor,
+          "disabled": props.disabled,
+          "readonly": props.readonly
+        }, null)]), props.showSwatches && createVNode(VColorPickerSwatches, {
+          "key": "swatches",
+          "color": currentColor.value,
+          "onUpdate:color": updateColor,
+          "maxHeight": props.swatchesMaxHeight,
+          "swatches": props.swatches,
+          "disabled": props.disabled,
+          "readonly": props.readonly
+        }, null)])
+      });
+    });
+    return {};
+  }
+});
+const _sfc_main = /* @__PURE__ */ defineComponent({
+  ...{
+    name: "CorporateDesign"
+  },
+  __name: "corporate-design",
+  __ssrInlineRender: true,
+  setup(__props) {
+    const HEX_COLOR_PATTERN = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+    useSeoMeta({
+      title: "Corporate Design | Eclipse BaSyx™",
+      ogTitle: "Corporate Design | Eclipse BaSyx™"
+    });
+    const appStore = useAppStore();
+    const breadcrumbs = ref([
+      { title: "Home", to: "/" },
+      { title: "Get Started", to: "/get-started/introduction" },
+      { title: "Corporate Design", to: "/get-started/visualization/corporate-design" }
+    ]);
+    const lightPrimaryColor = ref("");
+    const darkPrimaryColor = ref("");
+    const iconFile = ref(void 0);
+    const logoLightFile = ref(void 0);
+    const logoDarkFile = ref(void 0);
+    const syncBranding = computed({
+      get: () => appStore.getSyncBranding,
+      set: (value) => {
+        appStore.updateSyncBranding(value);
+      }
+    });
+    const dockerComposeConfigObject = computed(() => appStore.getDockerComposeConfig);
+    const hasColorValidationError = computed(() => {
+      const hasLight = lightPrimaryColor.value.trim().length > 0;
+      const hasDark = darkPrimaryColor.value.trim().length > 0;
+      if (hasLight && !HEX_COLOR_PATTERN.test(lightPrimaryColor.value.trim())) {
+        return true;
+      }
+      if (hasDark && !HEX_COLOR_PATTERN.test(darkPrimaryColor.value.trim())) {
+        return true;
+      }
+      return false;
+    });
+    function sanitizeHexColor(value) {
+      const normalized = (value || "").trim();
+      if (!normalized) {
+        return "";
+      }
+      if (!normalized.startsWith("#")) {
+        return "";
+      }
+      if (normalized.length === 5) {
+        return normalized.slice(0, 4).toUpperCase();
+      }
+      if (normalized.length === 9) {
+        return normalized.slice(0, 7).toUpperCase();
+      }
+      return normalized.toUpperCase();
+    }
+    const hexColorRule = (value) => {
+      const normalized = (value || "").trim();
+      if (!normalized || HEX_COLOR_PATTERN.test(normalized)) {
+        return true;
+      }
+      return "Use hex color format #RGB or #RRGGBB.";
+    };
+    watch(
+      () => appStore.getPrimaryLightColor,
+      (color) => {
+        lightPrimaryColor.value = color || "";
+      },
+      { immediate: true }
+    );
+    watch(
+      () => appStore.getPrimaryDarkColor,
+      (color) => {
+        darkPrimaryColor.value = color || "";
+      },
+      { immediate: true }
+    );
+    watch(
+      () => appStore.getAppIcon,
+      (icon) => {
+        iconFile.value = icon;
+      },
+      { immediate: true }
+    );
+    watch(
+      () => appStore.getLogoLight,
+      (logoLight) => {
+        logoLightFile.value = logoLight;
+      },
+      { immediate: true }
+    );
+    watch(
+      () => appStore.getLogoDark,
+      (logoDark) => {
+        logoDarkFile.value = logoDark;
+      },
+      { immediate: true }
+    );
+    watch(
+      () => dockerComposeConfigObject.value?.value,
+      (compose) => {
+        if (compose && typeof compose === "object" && "services" in compose) {
+          const services = compose.services;
+          const ui = services["aas-ui"];
+          if (ui?.environment) {
+            const envLight = ui.environment.PRIMARY_LIGHT_COLOR || lightPrimaryColor.value;
+            const envDark = ui.environment.PRIMARY_DARK_COLOR || darkPrimaryColor.value;
+            lightPrimaryColor.value = envLight;
+            darkPrimaryColor.value = envDark;
+          }
+        }
+      },
+      { immediate: true }
+    );
+    watch(syncBranding, (enabled) => {
+      if (enabled) {
+        darkPrimaryColor.value = lightPrimaryColor.value;
+        logoDarkFile.value = logoLightFile.value;
+      }
+    });
+    function onLightColorPicked(value) {
+      const sanitized = sanitizeHexColor(value);
+      if (sanitized) {
+        lightPrimaryColor.value = sanitized;
+        if (syncBranding.value) {
+          darkPrimaryColor.value = sanitized;
+        }
+      }
+    }
+    function onDarkColorPicked(value) {
+      if (syncBranding.value) {
+        return;
+      }
+      const sanitized = sanitizeHexColor(value);
+      if (sanitized) {
+        darkPrimaryColor.value = sanitized;
+      }
+    }
+    function onLightColorInput(value) {
+      const sanitized = sanitizeHexColor(value);
+      if (sanitized || value.trim() === "") {
+        lightPrimaryColor.value = sanitized;
+        if (syncBranding.value) {
+          darkPrimaryColor.value = sanitized;
+        }
+      }
+    }
+    function onDarkColorInput(value) {
+      if (syncBranding.value) {
+        return;
+      }
+      const sanitized = sanitizeHexColor(value);
+      if (sanitized || value.trim() === "") {
+        darkPrimaryColor.value = sanitized;
+      }
+    }
+    function addIcon() {
+      appStore.setAppIcon(iconFile.value);
+    }
+    function addLogoLight() {
+      appStore.setLogoLight(logoLightFile.value);
+      if (syncBranding.value) {
+        logoDarkFile.value = logoLightFile.value;
+        appStore.setLogoDark(logoLightFile.value);
+      }
+    }
+    function addLogoDark() {
+      appStore.setLogoDark(logoDarkFile.value);
+    }
+    function updateConfig(clear = false) {
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object") {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerComposeConfig = localDockerComposeConfig.value;
+      const service = dockerComposeConfig.services["aas-ui"];
+      if (!service) {
+        return;
+      }
+      if (!service.environment) {
+        service.environment = {};
+      }
+      if (clear) {
+        lightPrimaryColor.value = "";
+        darkPrimaryColor.value = "";
+        iconFile.value = void 0;
+        logoLightFile.value = void 0;
+        logoDarkFile.value = void 0;
+        appStore.setPrimaryLightColor("");
+        appStore.setPrimaryDarkColor("");
+        appStore.setAppIcon(void 0);
+        appStore.setLogoLight(void 0);
+        appStore.setLogoDark(void 0);
+        delete service.environment.PRIMARY_LIGHT_COLOR;
+        delete service.environment.PRIMARY_DARK_COLOR;
+        delete service.environment.LOGO_LIGHT_PATH;
+        delete service.environment.LOGO_DARK_PATH;
+        if (service.volumes) {
+          service.volumes = service.volumes.filter((vol) => vol !== "./logo:/usr/src/app/dist/Logo");
+          if (service.volumes.length === 0) {
+            delete service.volumes;
+          }
+        }
+      } else {
+        if (hasColorValidationError.value) {
+          return;
+        }
+        const light = sanitizeHexColor(lightPrimaryColor.value);
+        const dark = sanitizeHexColor(
+          syncBranding.value ? lightPrimaryColor.value : darkPrimaryColor.value
+        );
+        lightPrimaryColor.value = light;
+        darkPrimaryColor.value = dark;
+        appStore.setPrimaryLightColor(light);
+        appStore.setPrimaryDarkColor(dark);
+        if (light) {
+          service.environment.PRIMARY_LIGHT_COLOR = light;
+        } else {
+          delete service.environment.PRIMARY_LIGHT_COLOR;
+        }
+        if (dark) {
+          service.environment.PRIMARY_DARK_COLOR = dark;
+        } else {
+          delete service.environment.PRIMARY_DARK_COLOR;
+        }
+        if (syncBranding.value && logoLightFile.value) {
+          logoDarkFile.value = logoLightFile.value;
+          appStore.setLogoDark(logoLightFile.value);
+        }
+        if (logoLightFile.value) {
+          service.environment.LOGO_LIGHT_PATH = logoLightFile.value.name;
+        } else {
+          delete service.environment.LOGO_LIGHT_PATH;
+        }
+        if (logoDarkFile.value) {
+          service.environment.LOGO_DARK_PATH = logoDarkFile.value.name;
+        } else {
+          delete service.environment.LOGO_DARK_PATH;
+        }
+        if (logoLightFile.value || logoDarkFile.value || iconFile.value) {
+          const volume = "./logo:/usr/src/app/dist/Logo";
+          service.volumes = service.volumes || [];
+          if (!service.volumes.includes(volume)) {
+            service.volumes.push(volume);
+          }
+        }
+      }
+      localDockerComposeConfig.value = dockerComposeConfig;
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+    }
+    return (_ctx, _push, _parent, _attrs) => {
+      const _component_ClientOnly = __nuxt_component_0$1;
+      _push(ssrRenderComponent(VContainer, mergeProps({
+        class: "py-0 px-4 px-sm-8 px-md-12",
+        fluid: ""
+      }, _attrs), {
+        default: withCtx((_, _push2, _parent2, _scopeId) => {
+          if (_push2) {
+            _push2(ssrRenderComponent(VBreadcrumbs, {
+              class: "px-0 pb-0 text-body-2 mb-3",
+              divider: "›",
+              items: breadcrumbs.value
+            }, null, _parent2, _scopeId));
+            _push2(`<h1 class="mb-8 text-header"${_scopeId}>Corporate Design</h1><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}> Configure branding for the AAS Web UI including light/dark primary colors and logos. </p>`);
+            _push2(ssrRenderComponent(_component_ClientOnly, null, {
+              fallback: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VAlert, {
+                    color: "primary",
+                    variant: "outlined",
+                    class: "bg-alertCard mt-8 mb-8"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(` Loading branding settings... `);
+                      } else {
+                        return [
+                          createTextVNode(" Loading branding settings... ")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VAlert, {
+                      color: "primary",
+                      variant: "outlined",
+                      class: "bg-alertCard mt-8 mb-8"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Loading branding settings... ")
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              })
+            }, _parent2, _scopeId));
+            _push2(`<h2 class="text-header mt-12"${_scopeId}>Apply</h2>`);
+            _push2(ssrRenderComponent(VBtn, {
+              class: "mt-8",
+              block: "",
+              variant: "tonal",
+              disabled: hasColorValidationError.value,
+              onClick: ($event) => updateConfig()
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(` Apply Branding `);
+                } else {
+                  return [
+                    createTextVNode(" Apply Branding ")
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VBtn, {
+              color: "error",
+              "append-icon": "mdi-delete",
+              block: "",
+              variant: "tonal",
+              class: "mt-3 mb-8",
+              onClick: ($event) => updateConfig(true)
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(` Clear custom branding `);
+                } else {
+                  return [
+                    createTextVNode(" Clear custom branding ")
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VCardActions, { class: "px-0 mb-8" }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/visualization/ui"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`Back`);
+                      } else {
+                        return [
+                          createTextVNode("Back")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VSpacer, null, null, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/deployment/integration"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(` Next `);
+                      } else {
+                        return [
+                          createTextVNode(" Next ")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      "prepend-icon": "mdi-arrow-left",
+                      to: "/get-started/visualization/ui"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode("Back")
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VSpacer),
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      color: "primary",
+                      "append-icon": "mdi-arrow-right",
+                      to: "/get-started/deployment/integration"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Next ")
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+          } else {
+            return [
+              createVNode(VBreadcrumbs, {
+                class: "px-0 pb-0 text-body-2 mb-3",
+                divider: "›",
+                items: breadcrumbs.value
+              }, null, 8, ["items"]),
+              createVNode("h1", { class: "mb-8 text-header" }, "Corporate Design"),
+              createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, " Configure branding for the AAS Web UI including light/dark primary colors and logos. "),
+              createVNode(_component_ClientOnly, null, {
+                fallback: withCtx(() => [
+                  createVNode(VAlert, {
+                    color: "primary",
+                    variant: "outlined",
+                    class: "bg-alertCard mt-8 mb-8"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode(" Loading branding settings... ")
+                    ]),
+                    _: 1
+                  })
+                ]),
+                default: withCtx(() => [
+                  createVNode(VSwitch, {
+                    modelValue: syncBranding.value,
+                    "onUpdate:modelValue": ($event) => syncBranding.value = $event,
+                    class: "mb-2",
+                    color: "primary",
+                    label: "Sync light and dark branding",
+                    hint: "Use one color and one logo file for both themes.",
+                    "persistent-hint": "",
+                    "hide-details": "auto"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                  createVNode(VDivider, { class: "mt-12 mb-8" }),
+                  createVNode("h2", { class: "text-header" }, "Theme Colors"),
+                  createVNode(VRow, {
+                    class: "mt-4",
+                    density: "compact"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VCol, {
+                        cols: "12",
+                        md: syncBranding.value ? 12 : 6
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VCard, {
+                            variant: "tonal",
+                            class: "pa-4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode("div", { class: "text-subtitle-1 font-weight-medium mb-3" }, toDisplayString(syncBranding.value ? "Shared Color" : "PRIMARY_LIGHT_COLOR"), 1),
+                              createVNode(VColorPicker, {
+                                modelValue: lightPrimaryColor.value,
+                                "onUpdate:modelValue": [($event) => lightPrimaryColor.value = $event, onLightColorPicked],
+                                mode: "hex",
+                                modes: ["hex"],
+                                "hide-inputs": "",
+                                "show-swatches": ""
+                              }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                              createVNode(VTextField, {
+                                modelValue: lightPrimaryColor.value,
+                                "onUpdate:modelValue": [($event) => lightPrimaryColor.value = $event, onLightColorInput],
+                                class: "mt-4",
+                                label: syncBranding.value ? "PRIMARY_COLOR" : "PRIMARY_LIGHT_COLOR",
+                                variant: "solo-filled",
+                                rules: [hexColorRule],
+                                hint: "Hex only: #RGB or #RRGGBB",
+                                "persistent-hint": "",
+                                "hide-details": "auto"
+                              }, null, 8, ["modelValue", "onUpdate:modelValue", "label", "rules"])
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      }, 8, ["md"]),
+                      !syncBranding.value ? (openBlock(), createBlock(VCol, {
+                        key: 0,
+                        cols: "12",
+                        md: "6"
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VCard, {
+                            variant: "tonal",
+                            class: "pa-4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode("div", { class: "text-subtitle-1 font-weight-medium mb-3" }, "PRIMARY_DARK_COLOR"),
+                              createVNode(VColorPicker, {
+                                modelValue: darkPrimaryColor.value,
+                                "onUpdate:modelValue": [($event) => darkPrimaryColor.value = $event, onDarkColorPicked],
+                                mode: "hex",
+                                modes: ["hex"],
+                                "hide-inputs": "",
+                                "show-swatches": ""
+                              }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                              createVNode(VTextField, {
+                                modelValue: darkPrimaryColor.value,
+                                "onUpdate:modelValue": [($event) => darkPrimaryColor.value = $event, onDarkColorInput],
+                                class: "mt-4",
+                                label: "PRIMARY_DARK_COLOR",
+                                variant: "solo-filled",
+                                rules: [hexColorRule],
+                                hint: "Hex only: #RGB or #RRGGBB",
+                                "persistent-hint": "",
+                                "hide-details": "auto"
+                              }, null, 8, ["modelValue", "onUpdate:modelValue", "rules"])
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      })) : createCommentVNode("", true)
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VDivider, { class: "mt-12 mb-8" }),
+                  createVNode("h2", { class: "text-header" }, "Branding Assets"),
+                  createVNode(VFileInput, {
+                    modelValue: iconFile.value,
+                    "onUpdate:modelValue": [($event) => iconFile.value = $event, addIcon],
+                    class: "mt-8",
+                    variant: "solo-filled",
+                    "prepend-inner-icon": "$file",
+                    "prepend-icon": "",
+                    label: "Application Icon (favicon.ico)",
+                    density: "compact",
+                    accept: "image/x-icon"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                  createVNode(VFileInput, {
+                    modelValue: logoLightFile.value,
+                    "onUpdate:modelValue": [($event) => logoLightFile.value = $event, addLogoLight],
+                    variant: "solo-filled",
+                    "prepend-inner-icon": "$file",
+                    "prepend-icon": "",
+                    label: syncBranding.value ? "Logo (light + dark)" : "Logo Light (LOGO_LIGHT_PATH)",
+                    density: "compact",
+                    accept: "image/*"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue", "label"]),
+                  !syncBranding.value ? (openBlock(), createBlock(VFileInput, {
+                    key: 0,
+                    modelValue: logoDarkFile.value,
+                    "onUpdate:modelValue": [($event) => logoDarkFile.value = $event, addLogoDark],
+                    variant: "solo-filled",
+                    "prepend-inner-icon": "$file",
+                    "prepend-icon": "",
+                    label: "Logo Dark (LOGO_DARK_PATH)",
+                    density: "compact",
+                    accept: "image/*"
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"])) : createCommentVNode("", true)
+                ]),
+                _: 1
+              }),
+              createVNode("h2", { class: "text-header mt-12" }, "Apply"),
+              createVNode(VBtn, {
+                class: "mt-8",
+                block: "",
+                variant: "tonal",
+                disabled: hasColorValidationError.value,
+                onClick: ($event) => updateConfig()
+              }, {
+                default: withCtx(() => [
+                  createTextVNode(" Apply Branding ")
+                ]),
+                _: 1
+              }, 8, ["disabled", "onClick"]),
+              createVNode(VBtn, {
+                color: "error",
+                "append-icon": "mdi-delete",
+                block: "",
+                variant: "tonal",
+                class: "mt-3 mb-8",
+                onClick: ($event) => updateConfig(true)
+              }, {
+                default: withCtx(() => [
+                  createTextVNode(" Clear custom branding ")
+                ]),
+                _: 1
+              }, 8, ["onClick"]),
+              createVNode(VCardActions, { class: "px-0 mb-8" }, {
+                default: withCtx(() => [
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/visualization/ui"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode("Back")
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VSpacer),
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/deployment/integration"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode(" Next ")
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ];
+          }
+        }),
+        _: 1
+      }, _parent));
+    };
+  }
+});
+const _sfc_setup = _sfc_main.setup;
+_sfc_main.setup = (props, ctx) => {
+  const ssrContext = useSSRContext();
+  (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("pages/get-started/visualization/corporate-design.vue");
+  return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
+};
+
+export { _sfc_main as default };
+//# sourceMappingURL=corporate-design-w7qZWGas.mjs.map

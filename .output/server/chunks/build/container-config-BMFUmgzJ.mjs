@@ -1,0 +1,1932 @@
+import { bz as useSeoMeta, b0 as useAppStore, m as VIcon, _ as __nuxt_component_0$1, k as VBtn, a5 as genericComponent, bb as useGroup, aX as provideTheme, br as useRounded, aW as provideDefaults, bp as useRender, bc as useGroupItem, b1 as useBackgroundColor, b8 as useElevation, l as VDefaultsProvider, bh as useLazy, aV as propsFactory, aG as makeTagProps, ao as makeComponentProps, aH as makeThemeProps, aD as makeRoundedProps, aU as pick, aw as makeGroupProps, i as Ripple, b6 as useDimension, av as makeGroupItemProps, at as makeElevationProps, az as makeLazyProps, I as IconValue, ar as makeDimensionProps, aO as normalizeContextPath, bk as useLocale, bB as useTextColor, bo as useProxiedModel, bF as wrapInArray, T as deepEqual, aN as noop, V as VAvatar, Y as ensureValidVNode, a3 as forwardRefs, Z as escapeForRegex, ai as isComposingIgnoreKey, A as checkPrintable, aR as omit } from './server.mjs';
+import { defineComponent, ref, computed, mergeProps, withCtx, createTextVNode, createVNode, openBlock, createBlock, Fragment, renderList, toRef, normalizeStyle, normalizeClass, provide, createElementVNode, inject, withDirectives, vShow, watch, toDisplayString, createCommentVNode, shallowRef, nextTick, useSSRContext } from 'vue';
+import { ssrRenderComponent, ssrInterpolate } from 'vue/server-renderer';
+import { a as VExpandTransition, e as VSlideYTransition, V as VDivider } from './VDivider-D2ayNrXO.mjs';
+import { d as useInputIcon, c as useForm } from './VInput-CF1s2jmS.mjs';
+import { c as useMenuActivator, d as useScrolling, V as VMenu, b as VVirtualScroll, m as makeSelectProps, u as useFocusGroups } from './VSelect-Dg8iXqNr.mjs';
+import { V as VTextField, m as makeVTextFieldProps } from './VTextField-CmLAcn2i.mjs';
+import { i as useItems, t as transformItem$1, u as useFilter, a as VList, c as VListSubheader, h as highlightResult, V as VCheckboxBtn, m as makeFilterProps } from './filter-C4RZVAII.mjs';
+import { V as VSheet } from './VSheet-Cs8-m1MJ.mjs';
+import { V as VListItem } from './VListItem-DqdlKWJZ.mjs';
+import { V as VChip } from './VChip-hjpRim43.mjs';
+import { V as VNumberInput } from './VNumberInput-B1oWBGBG.mjs';
+import { V as VContainer } from './VContainer-BTz4nlxi.mjs';
+import { V as VBreadcrumbs } from './VBreadcrumbs-Cwgk5YXB.mjs';
+import { V as VAlert } from './VAlert-Bcj1ynP6.mjs';
+import { a as VRow, V as VCol } from './VRow-DT77qovv.mjs';
+import { V as VCardActions } from './VCardActions-_afJsMdG.mjs';
+import { V as VSpacer } from './VSpacer-D_joSj59.mjs';
+import '../nitro/nitro.mjs';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import '../routes/renderer.mjs';
+import 'vue-bundle-renderer/runtime';
+import 'unhead/server';
+import 'devalue';
+import 'unhead/plugins';
+import 'unhead/utils';
+import 'pinia';
+import 'perfect-debounce';
+import 'js-yaml';
+import 'lz-string';
+import './autofocus-DXczjZSo.mjs';
+import './ssrBoot-BRsRdwag.mjs';
+import './VField-CBPZxNBP.mjs';
+import './VSelectionControl-BgxnoM3f.mjs';
+
+const BASYX_UI_RELEASE_PATTERN = /^v2-\d{6}$/;
+const BASYX_GO_RELEASE_PATTERN = /^v?\d+\.\d+\.\d+(?:-rc\.\d+)?$/i;
+const SHORT_SHA_PATTERN = /^[0-9a-f]{7,40}$/i;
+function isSnapshotTag(tag) {
+  return tag.toUpperCase().includes("SNAPSHOT");
+}
+function isShortShaTag(tag) {
+  return SHORT_SHA_PATTERN.test(tag.trim());
+}
+function shouldExcludeTag(tag) {
+  const normalized = tag.trim();
+  if (!normalized) {
+    return true;
+  }
+  const lower = normalized.toLowerCase();
+  return lower === "buildcache" || lower.endsWith(".att") || lower.endsWith(".sig");
+}
+function isBasyxUiRepository(repository) {
+  return repository === "eclipsebasyx/aas-gui";
+}
+function isBasyxGoRepository(repository) {
+  return repository === "eclipsebasyx/aasenvironment-go" || repository === "eclipsebasyx/basyxconfigurationservice-go";
+}
+function isManagedBasyxRepository(repository) {
+  return isBasyxUiRepository(repository) || isBasyxGoRepository(repository);
+}
+function classifyTag(tag, repository) {
+  if (isSnapshotTag(tag)) {
+    return "snapshot";
+  }
+  if (isManagedBasyxRepository(repository) && isShortShaTag(tag)) {
+    return "snapshot";
+  }
+  if (tag === "latest") {
+    return "release";
+  }
+  if (isBasyxUiRepository(repository)) {
+    return BASYX_UI_RELEASE_PATTERN.test(tag) ? "release" : "other";
+  }
+  if (isBasyxGoRepository(repository)) {
+    return BASYX_GO_RELEASE_PATTERN.test(tag) ? "release" : "other";
+  }
+  return "other";
+}
+function toTagItems(tags, repository) {
+  return tags.map((tag) => ({
+    title: tag,
+    value: tag,
+    category: classifyTag(tag, repository)
+  }));
+}
+function normalizeTagList(tags, options = {}) {
+  const unique = Array.from(
+    new Set(tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0 && !shouldExcludeTag(tag)))
+  );
+  if (options.includeLatest && !unique.includes("latest")) {
+    unique.push("latest");
+  }
+  if (options.includeSnapshot && !unique.includes("SNAPSHOT")) {
+    unique.push("SNAPSHOT");
+  }
+  return unique;
+}
+function chooseDefaultTag(tags, repository = "") {
+  if (tags.includes("latest")) {
+    return "latest";
+  }
+  if (repository) {
+    const newestRelease = tags.find((tag) => classifyTag(tag, repository) === "release");
+    if (newestRelease) {
+      return newestRelease;
+    }
+    const newestNonSnapshot2 = tags.find((tag) => classifyTag(tag, repository) !== "snapshot");
+    if (newestNonSnapshot2) {
+      return newestNonSnapshot2;
+    }
+  }
+  const newestNonSnapshot = tags.find((tag) => !isSnapshotTag(tag));
+  if (newestNonSnapshot) {
+    return newestNonSnapshot;
+  }
+  if (tags.includes("SNAPSHOT")) {
+    return "SNAPSHOT";
+  }
+  return tags[0] || "latest";
+}
+const makeVComboboxProps = propsFactory({
+  alwaysFilter: Boolean,
+  autoSelectFirst: {
+    type: [Boolean, String]
+  },
+  clearOnSelect: {
+    type: Boolean,
+    default: true
+  },
+  delimiters: Array,
+  ...makeFilterProps({
+    filterKeys: ["title"]
+  }),
+  ...makeSelectProps({
+    hideNoData: true,
+    returnObject: true
+  }),
+  ...omit(makeVTextFieldProps({
+    modelValue: null,
+    role: "combobox"
+  }), ["validationValue", "dirty"])
+}, "VCombobox");
+const VCombobox = genericComponent()({
+  name: "VCombobox",
+  props: makeVComboboxProps(),
+  emits: {
+    "update:focused": (focused) => true,
+    "update:modelValue": (value) => true,
+    "update:search": (value) => true,
+    "update:menu": (value) => true
+  },
+  setup(props, {
+    emit,
+    slots
+  }) {
+    const {
+      t
+    } = useLocale();
+    const vTextFieldRef = ref();
+    const isFocused = shallowRef(false);
+    const isPristine = shallowRef(true);
+    const listHasFocus = shallowRef(false);
+    const vMenuRef = ref();
+    const vVirtualScrollRef = ref();
+    const selectionIndex = shallowRef(-1);
+    let cleared = false;
+    const {
+      items,
+      transformIn,
+      transformOut
+    } = useItems(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => vTextFieldRef.value?.color);
+    const {
+      InputIcon
+    } = useInputIcon(props);
+    const model = useProxiedModel(props, "modelValue", [], (v) => transformIn(wrapInArray(v)), (v) => {
+      const transformed = transformOut(v);
+      return props.multiple ? transformed : transformed[0] ?? null;
+    });
+    const form = useForm(props);
+    const closableChips = toRef(() => props.closableChips && !form.isReadonly.value && !form.isDisabled.value);
+    const hasChips = computed(() => !!(props.chips || slots.chip));
+    const hasSelectionSlot = computed(() => hasChips.value || !!slots.selection);
+    const _search = shallowRef(!props.multiple && !hasSelectionSlot.value ? model.value[0]?.title ?? "" : "");
+    const _searchLock = shallowRef(null);
+    const search = computed({
+      get: () => {
+        return _search.value;
+      },
+      set: async (val) => {
+        _search.value = val ?? "";
+        if (val === null || val === "" && !props.multiple && !hasSelectionSlot.value) {
+          model.value = [];
+        } else if (!props.multiple && !hasSelectionSlot.value) {
+          model.value = [transformItem$1(props, val)];
+          nextTick(() => vVirtualScrollRef.value?.scrollToIndex(0));
+        }
+        if (val && props.multiple && props.delimiters?.length) {
+          const values = splitByDelimiters(val);
+          if (values.length > 1) {
+            selectMultiple(values);
+            _search.value = "";
+          }
+        }
+        if (!val) selectionIndex.value = -1;
+        isPristine.value = !val;
+      }
+    });
+    const counterValue = computed(() => {
+      return typeof props.counterValue === "function" ? props.counterValue(model.value) : typeof props.counterValue === "number" ? props.counterValue : props.multiple ? model.value.length : search.value.length;
+    });
+    const {
+      filteredItems,
+      getMatches
+    } = useFilter(props, items, () => _searchLock.value ?? (props.alwaysFilter || !isPristine.value ? search.value : ""));
+    const displayItems = computed(() => {
+      if (props.hideSelected && _searchLock.value === null) {
+        return filteredItems.value.filter((filteredItem) => !model.value.some((s) => s.value === filteredItem.value));
+      }
+      return filteredItems.value;
+    });
+    const menuDisabled = computed(() => props.hideNoData && !displayItems.value.length || form.isReadonly.value || form.isDisabled.value);
+    const _menu = useProxiedModel(props, "menu");
+    const menu = computed({
+      get: () => _menu.value,
+      set: (v) => {
+        if (_menu.value && !v && vMenuRef.value?.ΨopenChildren.size) return;
+        if (v && menuDisabled.value) return;
+        _menu.value = v;
+      }
+    });
+    const {
+      menuId,
+      ariaExpanded,
+      ariaControls
+    } = useMenuActivator(props, menu);
+    watch(_search, (value) => {
+      if (cleared) {
+        nextTick(() => cleared = false);
+      } else if (isFocused.value && !menu.value) {
+        menu.value = true;
+      }
+      emit("update:search", value);
+    });
+    watch(model, (value) => {
+      if (!props.multiple && !hasSelectionSlot.value) {
+        _search.value = value[0]?.title ?? "";
+      }
+    });
+    const selectedValues = computed(() => model.value.map((selection) => selection.value));
+    const firstSelectableItem = computed(() => displayItems.value.find((x) => x.type === "item" && !x.props.disabled));
+    const highlightFirst = computed(() => {
+      const selectFirst = props.autoSelectFirst === true || props.autoSelectFirst === "exact" && search.value === firstSelectableItem.value?.title;
+      return selectFirst && displayItems.value.length > 0 && !isPristine.value && !listHasFocus.value;
+    });
+    const listRef = ref();
+    const headerRef = ref();
+    const footerRef = ref();
+    const listEvents = useScrolling(listRef, vTextFieldRef);
+    const {
+      onTabKeydown
+    } = useFocusGroups({
+      groups: [{
+        type: "element",
+        contentRef: headerRef
+      }, {
+        type: "list",
+        contentRef: listRef,
+        displayItemsCount: () => displayItems.value.length
+      }, {
+        type: "element",
+        contentRef: footerRef
+      }],
+      onLeave: () => {
+        menu.value = false;
+        vTextFieldRef.value?.focus();
+      }
+    });
+    function onClear(e) {
+      cleared = true;
+      nextTick(() => cleared = false);
+      if (props.openOnClear) {
+        menu.value = true;
+      }
+    }
+    function onMousedownControl() {
+      if (menuDisabled.value) return;
+      menu.value = true;
+    }
+    function onMousedownMenuIcon(e) {
+      if (menuDisabled.value) return;
+      if (isFocused.value) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      menu.value = !menu.value;
+    }
+    function onMenuKeydown(e) {
+      if (e.key === "Tab") {
+        onTabKeydown(e);
+      }
+      if (listRef.value?.$el.contains(e.target) && (checkPrintable(e) || e.key === "Backspace")) {
+        vTextFieldRef.value?.focus();
+      }
+    }
+    function onKeydown(e) {
+      if (isComposingIgnoreKey(e) || form.isReadonly.value) return;
+      const selectionStart = vTextFieldRef.value?.selectionStart;
+      const length = model.value.length;
+      if (["Enter", "ArrowDown", "ArrowUp"].includes(e.key)) {
+        e.preventDefault();
+      }
+      if (["Enter", "ArrowDown"].includes(e.key)) {
+        menu.value = true;
+      }
+      if (["Escape"].includes(e.key)) {
+        menu.value = false;
+      }
+      if (highlightFirst.value && ["Enter", "Tab"].includes(e.key) && firstSelectableItem.value && !model.value.some(({
+        value
+      }) => value === firstSelectableItem.value.value)) {
+        select(firstSelectableItem.value);
+      }
+      if (e.key === "ArrowDown" && highlightFirst.value) {
+        listRef.value?.focus("next");
+      }
+      if (e.key === "Enter" && search.value) {
+        select(transformItem$1(props, search.value), true, true);
+        if (hasSelectionSlot.value) _search.value = "";
+      }
+      if (["Backspace", "Delete"].includes(e.key)) {
+        if (!props.multiple && hasSelectionSlot.value && model.value.length > 0 && !search.value) return select(model.value[0], false);
+        if (~selectionIndex.value) {
+          e.preventDefault();
+          const originalSelectionIndex = selectionIndex.value;
+          select(model.value[selectionIndex.value], false);
+          selectionIndex.value = originalSelectionIndex >= length - 1 ? length - 2 : originalSelectionIndex;
+        } else if (e.key === "Backspace" && !search.value) {
+          selectionIndex.value = length - 1;
+        }
+        return;
+      }
+      if (!props.multiple) return;
+      if (e.key === "ArrowLeft") {
+        if (selectionIndex.value < 0 && selectionStart && selectionStart > 0) return;
+        const prev = selectionIndex.value > -1 ? selectionIndex.value - 1 : length - 1;
+        if (model.value[prev]) {
+          selectionIndex.value = prev;
+        } else {
+          selectionIndex.value = -1;
+          vTextFieldRef.value?.setSelectionRange(search.value.length, search.value.length);
+        }
+      } else if (e.key === "ArrowRight") {
+        if (selectionIndex.value < 0) return;
+        const next = selectionIndex.value + 1;
+        if (model.value[next]) {
+          selectionIndex.value = next;
+        } else {
+          selectionIndex.value = -1;
+          vTextFieldRef.value?.setSelectionRange(0, 0);
+        }
+      } else if (~selectionIndex.value && checkPrintable(e)) {
+        selectionIndex.value = -1;
+      }
+    }
+    function onPaste(e) {
+      const clipboardText = e?.clipboardData?.getData("Text") ?? "";
+      const values = splitByDelimiters(clipboardText);
+      if (values.length > 1 && props.multiple) {
+        e.preventDefault();
+        selectMultiple(values);
+      }
+    }
+    function onAfterEnter() {
+      if (props.eager) {
+        vVirtualScrollRef.value?.calculateVisibleItems();
+      }
+    }
+    function onAfterLeave() {
+      if (isFocused.value) {
+        vTextFieldRef.value?.focus();
+      }
+      isPristine.value = true;
+      _searchLock.value = null;
+    }
+    function select(item, set = true, keepMenu = false) {
+      if (!item || item.props.disabled) return;
+      if (props.multiple) {
+        const index = model.value.findIndex((selection) => (props.valueComparator || deepEqual)(selection.value, item.value));
+        const add = set == null ? !~index : set;
+        if (~index) {
+          const value = add ? [...model.value, item] : [...model.value];
+          value.splice(index, 1);
+          model.value = value;
+        } else if (add) {
+          model.value = [...model.value, item];
+        }
+        if (props.clearOnSelect) {
+          search.value = "";
+        }
+      } else {
+        const add = set !== false;
+        model.value = add ? [item] : [];
+        if ((!isPristine.value || props.alwaysFilter) && _search.value) {
+          _searchLock.value = _search.value;
+        }
+        _search.value = add && !hasSelectionSlot.value ? item.title : "";
+        nextTick(() => {
+          menu.value = keepMenu;
+          isPristine.value = true;
+        });
+      }
+    }
+    function splitByDelimiters(val) {
+      const effectiveDelimiters = ["\n", ...props.delimiters ?? []];
+      const signsToMatch = effectiveDelimiters.map(escapeForRegex).join("|");
+      return val.split(new RegExp(`(?:${signsToMatch})+`));
+    }
+    async function selectMultiple(values) {
+      for (let value of values) {
+        value = value.trim();
+        if (value) {
+          select(transformItem$1(props, value));
+          await nextTick();
+        }
+      }
+    }
+    function onFocusin(e) {
+      isFocused.value = true;
+      setTimeout(() => {
+        listHasFocus.value = true;
+      });
+    }
+    function onFocusout(e) {
+      listHasFocus.value = false;
+      if (!vTextFieldRef.value?.$el.contains(e.relatedTarget)) {
+        isFocused.value = false;
+      }
+    }
+    function onBlur(e) {
+      const menuContent = vMenuRef.value?.contentEl;
+      if (menuContent?.contains(e.relatedTarget)) {
+        isFocused.value = true;
+      }
+    }
+    watch(isFocused, (val, oldVal) => {
+      if (val || val === oldVal) return;
+      selectionIndex.value = -1;
+      menu.value = false;
+      if (search.value) {
+        if (props.multiple) {
+          select(transformItem$1(props, search.value));
+          return;
+        }
+        if (!hasSelectionSlot.value) return;
+        if (model.value.some(({
+          title
+        }) => title === search.value)) {
+          _search.value = "";
+        } else {
+          select(transformItem$1(props, search.value));
+        }
+      }
+    });
+    watch(menu, (val) => {
+      if (!props.hideSelected && val && model.value.length && isPristine.value) {
+        displayItems.value.findIndex((item) => model.value.some((s) => (props.valueComparator || deepEqual)(s.value, item.value)));
+      }
+      if (val) _searchLock.value = null;
+    });
+    watch(items, (newVal, oldVal) => {
+      if (menu.value) return;
+      if (isFocused.value && !oldVal.length && newVal.length) {
+        menu.value = true;
+      }
+    });
+    useRender(() => {
+      const hasList = !!(!props.hideNoData || displayItems.value.length || slots["prepend-item"] || slots["append-item"] || slots["no-data"]);
+      const isDirty = model.value.length > 0;
+      const textFieldProps = VTextField.filterProps(props);
+      const menuSlotProps = {
+        search,
+        filteredItems: filteredItems.value
+      };
+      return createVNode(VTextField, mergeProps({
+        "ref": vTextFieldRef
+      }, textFieldProps, {
+        "modelValue": search.value,
+        "onUpdate:modelValue": ($event) => search.value = $event,
+        "focused": isFocused.value,
+        "onUpdate:focused": ($event) => isFocused.value = $event,
+        "validationValue": model.externalValue,
+        "counterValue": counterValue.value,
+        "dirty": isDirty,
+        "class": ["v-combobox", {
+          "v-combobox--active-menu": menu.value,
+          "v-combobox--chips": !!props.chips,
+          "v-combobox--selection-slot": !!hasSelectionSlot.value,
+          "v-combobox--selecting-index": selectionIndex.value > -1,
+          [`v-combobox--${props.multiple ? "multiple" : "single"}`]: true
+        }, props.class],
+        "style": props.style,
+        "readonly": form.isReadonly.value,
+        "placeholder": isDirty ? void 0 : props.placeholder,
+        "onClick:clear": onClear,
+        "onMousedown:control": onMousedownControl,
+        "onKeydown": onKeydown,
+        "onPaste": onPaste,
+        "onBlur": onBlur,
+        "aria-expanded": ariaExpanded.value,
+        "aria-controls": ariaControls.value
+      }), {
+        ...slots,
+        default: ({
+          id
+        }) => createElementVNode(Fragment, null, [createVNode(VMenu, mergeProps({
+          "id": menuId.value,
+          "ref": vMenuRef,
+          "modelValue": menu.value,
+          "onUpdate:modelValue": ($event) => menu.value = $event,
+          "activator": "parent",
+          "disabled": menuDisabled.value,
+          "eager": props.eager,
+          "maxHeight": 310,
+          "openOnClick": false,
+          "closeOnContentClick": false,
+          "onAfterEnter": onAfterEnter,
+          "onAfterLeave": onAfterLeave
+        }, props.menuProps, {
+          "contentClass": ["v-combobox__content", props.menuProps?.contentClass]
+        }), {
+          default: () => [createVNode(VSheet, {
+            "elevation": props.menuElevation,
+            "onFocusin": onFocusin,
+            "onKeydown": onMenuKeydown
+          }, {
+            default: () => [slots["menu-header"] && createElementVNode("header", {
+              "ref": headerRef
+            }, [slots["menu-header"](menuSlotProps)]), hasList && createVNode(VList, mergeProps({
+              "key": "combobox-list",
+              "ref": listRef,
+              "filterable": true,
+              "selected": selectedValues.value,
+              "selectStrategy": props.multiple ? "independent" : "single-independent",
+              "onMousedown": (e) => e.preventDefault(),
+              "selectable": !!displayItems.value.length,
+              "onFocusout": onFocusout,
+              "tabindex": "-1",
+              "aria-live": "polite",
+              "aria-labelledby": `${id.value}-label`,
+              "aria-multiselectable": props.multiple,
+              "color": props.itemColor ?? props.color
+            }, listEvents, props.listProps), {
+              default: () => [slots["prepend-item"]?.(), !displayItems.value.length && !props.hideNoData && (slots["no-data"]?.() ?? createVNode(VListItem, {
+                "key": "no-data",
+                "title": t(props.noDataText)
+              }, null)), createVNode(VVirtualScroll, {
+                "ref": vVirtualScrollRef,
+                "renderless": true,
+                "items": displayItems.value,
+                "itemKey": "value"
+              }, {
+                default: ({
+                  item,
+                  index,
+                  itemRef
+                }) => {
+                  const itemProps = mergeProps(item.props, {
+                    ref: itemRef,
+                    key: item.value,
+                    active: highlightFirst.value && item === firstSelectableItem.value ? true : void 0,
+                    onClick: () => select(item, null),
+                    "aria-posinset": index + 1,
+                    "aria-setsize": displayItems.value.length
+                  });
+                  if (item.type === "divider") {
+                    return slots.divider?.({
+                      props: item.raw,
+                      index
+                    }) ?? createVNode(VDivider, mergeProps(item.props, {
+                      "key": `divider-${index}`
+                    }), null);
+                  }
+                  if (item.type === "subheader") {
+                    return slots.subheader?.({
+                      props: item.raw,
+                      index
+                    }) ?? createVNode(VListSubheader, mergeProps(item.props, {
+                      "key": `subheader-${index}`
+                    }), null);
+                  }
+                  return slots.item?.({
+                    item: item.raw,
+                    internalItem: item,
+                    index,
+                    props: itemProps
+                  }) ?? createVNode(VListItem, mergeProps(itemProps, {
+                    "role": "option"
+                  }), {
+                    prepend: ({
+                      isSelected
+                    }) => createElementVNode(Fragment, null, [props.multiple && !props.hideSelected ? createVNode(VCheckboxBtn, {
+                      "key": item.value,
+                      "modelValue": isSelected,
+                      "ripple": false,
+                      "tabindex": "-1",
+                      "aria-hidden": true,
+                      "onClick": (event) => event.preventDefault()
+                    }, null) : void 0, item.props.prependAvatar && createVNode(VAvatar, {
+                      "image": item.props.prependAvatar
+                    }, null), item.props.prependIcon && createVNode(VIcon, {
+                      "icon": item.props.prependIcon
+                    }, null)]),
+                    title: () => {
+                      return isPristine.value ? item.title : highlightResult("v-combobox", item.title, getMatches(item)?.title);
+                    }
+                  });
+                }
+              }), slots["append-item"]?.()]
+            }), slots["menu-footer"] && createElementVNode("footer", {
+              "ref": footerRef
+            }, [slots["menu-footer"](menuSlotProps)])]
+          })]
+        }), model.value.map((item, index) => {
+          function onChipClose(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            select(item, false);
+          }
+          const slotProps = mergeProps(VChip.filterProps(item.props), {
+            "onClick:close": onChipClose,
+            onKeydown(e) {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              e.stopPropagation();
+              onChipClose(e);
+            },
+            onMousedown(e) {
+              e.preventDefault();
+              e.stopPropagation();
+            },
+            modelValue: true,
+            "onUpdate:modelValue": void 0
+          });
+          const hasSlot = hasChips.value ? !!slots.chip : !!slots.selection;
+          const slotContent = hasSlot ? ensureValidVNode(hasChips.value ? slots.chip({
+            item: item.raw,
+            internalItem: item,
+            index,
+            props: slotProps
+          }) : slots.selection({
+            item: item.raw,
+            internalItem: item,
+            index
+          })) : void 0;
+          if (hasSlot && !slotContent) return void 0;
+          return createElementVNode("div", {
+            "key": item.value,
+            "class": normalizeClass(["v-combobox__selection", index === selectionIndex.value && ["v-combobox__selection--selected", textColorClasses.value]]),
+            "style": normalizeStyle(index === selectionIndex.value ? textColorStyles.value : {})
+          }, [hasChips.value ? !slots.chip ? createVNode(VChip, mergeProps({
+            "key": "chip",
+            "closable": closableChips.value,
+            "size": "small",
+            "text": item.title,
+            "disabled": item.props.disabled
+          }, slotProps), null) : createVNode(VDefaultsProvider, {
+            "key": "chip-defaults",
+            "defaults": {
+              VChip: {
+                closable: closableChips.value,
+                size: "small",
+                text: item.title
+              }
+            }
+          }, {
+            default: () => [slotContent]
+          }) : slotContent ?? createElementVNode("span", {
+            "class": "v-combobox__selection-text"
+          }, [item.title, props.multiple && index < model.value.length - 1 && createElementVNode("span", {
+            "class": "v-combobox__selection-comma"
+          }, [createTextVNode(",")])])]);
+        })]),
+        "append-inner": (...args) => createElementVNode(Fragment, null, [slots["append-inner"]?.(...args), (!props.hideNoData || props.items.length) && props.menuIcon ? createVNode(VIcon, {
+          "class": "v-combobox__menu-icon",
+          "color": vTextFieldRef.value?.fieldIconColor,
+          "icon": props.menuIcon,
+          "onMousedown": onMousedownMenuIcon,
+          "onClick": noop,
+          "aria-hidden": true,
+          "tabindex": "-1"
+        }, null) : void 0, props.appendInnerIcon && createVNode(InputIcon, {
+          "key": "append-icon",
+          "name": "appendInner",
+          "color": args[0].iconColor.value
+        }, null)])
+      });
+    });
+    return forwardRefs({
+      isFocused,
+      isPristine,
+      menu,
+      search,
+      selectionIndex,
+      filteredItems,
+      select
+    }, vTextFieldRef);
+  }
+});
+const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+  ...{
+    name: "DockerConfig"
+  },
+  __name: "DockerConfig",
+  __ssrInlineRender: true,
+  props: {
+    serviceName: {}
+  },
+  setup(__props) {
+    const MANAGED_REPOSITORIES = {
+      "aas-environment": "eclipsebasyx/aasenvironment-go",
+      "aas-ui": "eclipsebasyx/aas-gui",
+      basyx_configuration: "eclipsebasyx/basyxconfigurationservice-go"
+    };
+    const props = __props;
+    const appStore = useAppStore();
+    const externalPort = ref(void 0);
+    const containerName = ref(void 0);
+    const contextPath = ref(void 0);
+    const imageTag = ref("");
+    const availableTagItems = ref([]);
+    const loadingTags = ref(false);
+    const tagLoadError = ref("");
+    const dockerComposeConfigObject = computed(() => appStore.getDockerComposeConfig);
+    const servicePort = computed(() => appStore.getContainerPort(props.serviceName));
+    const serviceContainerName = computed(() => appStore.getContainerName(props.serviceName));
+    const managedRepository = computed(() => MANAGED_REPOSITORIES[props.serviceName] || "");
+    const shouldForceLatestOption = computed(() => managedRepository.value === "eclipsebasyx/aas-gui");
+    const showContextPath = computed(
+      () => props.serviceName === "aas-ui" || props.serviceName === "aas-environment"
+    );
+    const contextPathEnvKey = computed(
+      () => props.serviceName === "aas-environment" ? "SERVER_CONTEXTPATH" : "BASE_PATH"
+    );
+    const contextPathLabel = computed(
+      () => props.serviceName === "aas-environment" ? "AAS Environment Context Path" : "UI Base Path"
+    );
+    const contextPathDescription = computed(
+      () => props.serviceName === "aas-environment" ? "Configure SERVER_CONTEXTPATH for the AAS Environment (for example /api/aas)." : "Configure BASE_PATH for the AAS Web UI (for example /basyx-ui)."
+    );
+    const contextPathInput = computed(() => contextPath.value || "");
+    const hasPorts = computed(() => {
+      const compose = dockerComposeConfigObject.value?.value;
+      if (!compose || typeof compose !== "object" || !("services" in compose)) {
+        return false;
+      }
+      const services = compose.services;
+      const service = services[props.serviceName];
+      return Boolean(service?.ports && service.ports.length > 0);
+    });
+    function parseImageTag(image) {
+      if (!image) {
+        return "";
+      }
+      const parts = image.split(":");
+      if (parts.length < 2) {
+        return "";
+      }
+      return parts[parts.length - 1] || "";
+    }
+    function resolveTagInput(tagInput) {
+      if (typeof tagInput === "string") {
+        return tagInput.trim();
+      }
+      if (!tagInput || typeof tagInput !== "object") {
+        return "";
+      }
+      if ("value" in tagInput && typeof tagInput.value === "string") {
+        return tagInput.value.trim();
+      }
+      if ("title" in tagInput && typeof tagInput.title === "string") {
+        return tagInput.title.trim();
+      }
+      if ("raw" in tagInput && tagInput.raw && typeof tagInput.raw === "object" && "value" in tagInput.raw && typeof tagInput.raw.value === "string") {
+        return tagInput.raw.value.trim();
+      }
+      return "";
+    }
+    function getItemCategory(item) {
+      if (item.raw && typeof item.raw === "object" && "category" in item.raw && typeof item.raw.category === "string") {
+        const category = item.raw.category;
+        if (category === "snapshot" || category === "release" || category === "other") {
+          return category;
+        }
+      }
+      if (typeof item.value === "string") {
+        return classifyTag(item.value, managedRepository.value);
+      }
+      return "other";
+    }
+    function tagCategoryLabel(category) {
+      if (category === "snapshot") {
+        return "Snapshot";
+      }
+      if (category === "release") {
+        return "Release";
+      }
+      return "Other";
+    }
+    function tagCategoryColor(category) {
+      if (category === "snapshot") {
+        return "warning";
+      }
+      if (category === "release") {
+        return "success";
+      }
+      return "secondary";
+    }
+    function updateImageInService(service, tag, fallbackRepository = managedRepository.value) {
+      const repository = fallbackRepository || (service.image ? service.image.split(":")[0] : "");
+      if (!repository || !tag) {
+        return;
+      }
+      service.image = `${repository}:${tag}`;
+    }
+    function syncAasGoCompanionServiceTag(dockerConfig, tag) {
+      const shouldSync = props.serviceName === "aas-environment" || props.serviceName === "basyx_configuration";
+      if (!shouldSync) {
+        return;
+      }
+      const counterpartName = props.serviceName === "aas-environment" ? "basyx_configuration" : "aas-environment";
+      const counterpartService = dockerConfig.services[counterpartName];
+      if (!counterpartService) {
+        return;
+      }
+      updateImageInService(counterpartService, tag, MANAGED_REPOSITORIES[counterpartName]);
+    }
+    function setOrReplaceEnvVar(env, key, value) {
+      const prefix = `${key}=`;
+      const index = env.findIndex((item) => item.startsWith(prefix));
+      if (index >= 0) {
+        env[index] = `${key}=${value}`;
+      } else {
+        env.push(`${key}=${value}`);
+      }
+    }
+    function getEnvVar(env, key) {
+      const prefix = `${key}=`;
+      const entry = env.find((item) => item.startsWith(prefix));
+      if (!entry) {
+        return void 0;
+      }
+      return entry.slice(prefix.length);
+    }
+    function normalizeContextPathInput(value) {
+      const normalizedPath = normalizeContextPath(String(value ?? "").replace(/\s+/g, ""));
+      return normalizedPath || void 0;
+    }
+    function getNormalizedTagList(tags) {
+      return normalizeTagList(tags, {
+        includeLatest: shouldForceLatestOption.value,
+        includeSnapshot: true
+      });
+    }
+    async function ensureTagOptions() {
+      if (!managedRepository.value) {
+        availableTagItems.value = imageTag.value ? toTagItems([imageTag.value], managedRepository.value) : [];
+        return;
+      }
+      loadingTags.value = true;
+      tagLoadError.value = "";
+      try {
+        const response = await fetch(
+          `/api/docker-tags?repo=${encodeURIComponent(managedRepository.value)}`
+        );
+        if (!response.ok) {
+          throw new Error(`Tag request failed: ${response.status}`);
+        }
+        const payload = await response.json();
+        availableTagItems.value = toTagItems(
+          getNormalizedTagList(payload.tags || []),
+          managedRepository.value
+        );
+      } catch {
+        tagLoadError.value = "Could not load Docker Hub tags. You can still type a custom tag.";
+        availableTagItems.value = toTagItems(getNormalizedTagList([]), managedRepository.value);
+      } finally {
+        loadingTags.value = false;
+      }
+      const availableTags = availableTagItems.value.map((item) => item.value);
+      if (!imageTag.value) {
+        imageTag.value = chooseDefaultTag(availableTags, managedRepository.value);
+        updateImageTag(imageTag.value);
+        return;
+      }
+      if (imageTag.value === "latest" && !availableTags.includes("latest")) {
+        const fallbackTag = chooseDefaultTag(availableTags, managedRepository.value);
+        imageTag.value = fallbackTag;
+        updateImageTag(fallbackTag);
+      }
+    }
+    watch(
+      servicePort,
+      (newVal) => {
+        if (newVal) {
+          externalPort.value = newVal;
+        }
+      },
+      { immediate: true }
+    );
+    watch(
+      serviceContainerName,
+      (newVal) => {
+        if (newVal) {
+          containerName.value = newVal;
+        }
+      },
+      { immediate: true }
+    );
+    watch(
+      () => dockerComposeConfigObject.value?.value,
+      async (val) => {
+        if (!val || typeof val !== "object" || !("services" in val)) {
+          return;
+        }
+        const services = val.services;
+        const service = services[props.serviceName];
+        if (!service) {
+          return;
+        }
+        const tagFromService = parseImageTag(service.image);
+        imageTag.value = tagFromService;
+        if (showContextPath.value) {
+          if (props.serviceName === "aas-ui" && service.environment && !Array.isArray(service.environment)) {
+            contextPath.value = normalizeContextPathInput(service.environment.BASE_PATH);
+          }
+          if (props.serviceName === "aas-environment" && service.environment && Array.isArray(service.environment)) {
+            contextPath.value = normalizeContextPathInput(
+              getEnvVar(service.environment, "SERVER_CONTEXTPATH")
+            );
+          }
+        }
+        await ensureTagOptions();
+      },
+      { immediate: true }
+    );
+    function updateDockerPort() {
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object" || !externalPort.value) {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerConfig = localDockerComposeConfig.value;
+      const service = dockerConfig.services?.[props.serviceName];
+      if (!service?.ports || !Array.isArray(service.ports) || service.ports.length === 0) {
+        return;
+      }
+      if (props.serviceName === "aas-environment") {
+        service.ports[0] = `${externalPort.value}:${externalPort.value}`;
+        if (service.environment && Array.isArray(service.environment)) {
+          setOrReplaceEnvVar(service.environment, "SERVER_PORT", String(externalPort.value));
+        }
+      } else {
+        const currentMapping = service.ports[0];
+        if (!currentMapping) {
+          return;
+        }
+        const parts = currentMapping.split(":");
+        const internal = parts.length >= 2 ? parts[1] : String(externalPort.value);
+        service.ports[0] = `${externalPort.value}:${internal}`;
+      }
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+      appStore.setContainerPort(props.serviceName, externalPort.value);
+    }
+    function updateContainerName() {
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object") {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerConfig = localDockerComposeConfig.value;
+      const service = dockerConfig.services?.[props.serviceName];
+      if (service) {
+        service.container_name = containerName.value;
+      }
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+      appStore.setContainerName(props.serviceName, containerName.value);
+    }
+    function updateContextPath(value) {
+      const normalizedContextPath = normalizeContextPathInput(value);
+      contextPath.value = normalizedContextPath;
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object") {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerConfig = localDockerComposeConfig.value;
+      const service = dockerConfig.services?.[props.serviceName];
+      if (!service) {
+        return;
+      }
+      if (props.serviceName === "aas-ui") {
+        if (!service.environment || Array.isArray(service.environment)) {
+          service.environment = {};
+        }
+        if (normalizedContextPath) {
+          service.environment.BASE_PATH = normalizedContextPath;
+        } else {
+          delete service.environment.BASE_PATH;
+        }
+      }
+      if (props.serviceName === "aas-environment") {
+        if (!service.environment || !Array.isArray(service.environment)) {
+          service.environment = [];
+        }
+        if (normalizedContextPath) {
+          setOrReplaceEnvVar(service.environment, "SERVER_CONTEXTPATH", normalizedContextPath);
+        } else {
+          service.environment = service.environment.filter(
+            (entry) => !entry.startsWith("SERVER_CONTEXTPATH=")
+          );
+        }
+      }
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+      appStore.setContextPath(props.serviceName, normalizedContextPath);
+    }
+    function updateImageTag(tagInput) {
+      const tag = resolveTagInput(tagInput);
+      if (!tag) {
+        return;
+      }
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object") {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerConfig = localDockerComposeConfig.value;
+      const service = dockerConfig.services?.[props.serviceName];
+      if (!service) {
+        return;
+      }
+      updateImageInService(service, tag);
+      syncAasGoCompanionServiceTag(dockerConfig, tag);
+      imageTag.value = tag;
+      if (!availableTagItems.value.some((item) => item.value === tag)) {
+        availableTagItems.value = [
+          { title: tag, value: tag, category: classifyTag(tag, managedRepository.value) },
+          ...availableTagItems.value
+        ];
+      }
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+    }
+    return (_ctx, _push, _parent, _attrs) => {
+      _push(ssrRenderComponent(VSlideYTransition, _attrs, {
+        default: withCtx((_, _push2, _parent2, _scopeId) => {
+          if (_push2) {
+            _push2(`<div${_scopeId}><h2 class="text-header"${_scopeId}>Container Image Tag</h2><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}> Select a Docker image tag. You can also type a custom tag manually. </p>`);
+            _push2(ssrRenderComponent(VCombobox, {
+              "model-value": imageTag.value,
+              variant: "solo-filled",
+              items: availableTagItems.value,
+              "item-title": "title",
+              "item-value": "value",
+              "return-object": false,
+              loading: loadingTags.value,
+              label: managedRepository.value ? `${managedRepository.value} tag` : "Image tag",
+              "hide-details": "auto",
+              hint: "Defaults to latest, then newest non-SNAPSHOT if latest is unavailable.",
+              "persistent-hint": "",
+              "onUpdate:modelValue": updateImageTag
+            }, {
+              item: withCtx(({ props: itemProps, item }, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VListItem, itemProps, {
+                    append: withCtx((_2, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VChip, {
+                          size: "x-small",
+                          color: tagCategoryColor(getItemCategory(item)),
+                          variant: "tonal",
+                          class: "text-caption"
+                        }, {
+                          default: withCtx((_3, _push5, _parent5, _scopeId4) => {
+                            if (_push5) {
+                              _push5(`${ssrInterpolate(tagCategoryLabel(getItemCategory(item)))}`);
+                            } else {
+                              return [
+                                createTextVNode(toDisplayString(tagCategoryLabel(getItemCategory(item))), 1)
+                              ];
+                            }
+                          }),
+                          _: 2
+                        }, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VChip, {
+                            size: "x-small",
+                            color: tagCategoryColor(getItemCategory(item)),
+                            variant: "tonal",
+                            class: "text-caption"
+                          }, {
+                            default: withCtx(() => [
+                              createTextVNode(toDisplayString(tagCategoryLabel(getItemCategory(item))), 1)
+                            ]),
+                            _: 2
+                          }, 1032, ["color"])
+                        ];
+                      }
+                    }),
+                    _: 2
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VListItem, itemProps, {
+                      append: withCtx(() => [
+                        createVNode(VChip, {
+                          size: "x-small",
+                          color: tagCategoryColor(getItemCategory(item)),
+                          variant: "tonal",
+                          class: "text-caption"
+                        }, {
+                          default: withCtx(() => [
+                            createTextVNode(toDisplayString(tagCategoryLabel(getItemCategory(item))), 1)
+                          ]),
+                          _: 2
+                        }, 1032, ["color"])
+                      ]),
+                      _: 2
+                    }, 1040)
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            if (tagLoadError.value) {
+              _push2(`<p class="text-caption text-error mt-1"${_scopeId}>${ssrInterpolate(tagLoadError.value)}</p>`);
+            } else {
+              _push2(`<!---->`);
+            }
+            _push2(ssrRenderComponent(VDivider, { class: "mt-6 mb-8" }, null, _parent2, _scopeId));
+            if (hasPorts.value) {
+              _push2(`<!--[--><h2 class="text-header"${_scopeId}>Docker External Port</h2><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}> The port that makes the container accessible from the outside. </p>`);
+              _push2(ssrRenderComponent(VNumberInput, {
+                modelValue: externalPort.value,
+                "onUpdate:modelValue": [($event) => externalPort.value = $event, updateDockerPort],
+                variant: "solo-filled",
+                "hide-details": ""
+              }, null, _parent2, _scopeId));
+              _push2(ssrRenderComponent(VDivider, { class: "mt-6 mb-8" }, null, _parent2, _scopeId));
+              _push2(`<!--]-->`);
+            } else {
+              _push2(`<!---->`);
+            }
+            _push2(`<h2 class="text-header"${_scopeId}>Docker Container Name</h2><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}>The name of the Docker container.</p>`);
+            _push2(ssrRenderComponent(VTextField, {
+              modelValue: containerName.value,
+              "onUpdate:modelValue": [($event) => containerName.value = $event, updateContainerName],
+              variant: "solo-filled",
+              "hide-details": ""
+            }, null, _parent2, _scopeId));
+            if (showContextPath.value) {
+              _push2(`<!--[-->`);
+              _push2(ssrRenderComponent(VDivider, { class: "mt-6 mb-8" }, null, _parent2, _scopeId));
+              _push2(`<h2 class="text-header"${_scopeId}>${ssrInterpolate(contextPathLabel.value)}</h2><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}>${ssrInterpolate(contextPathDescription.value)}</p>`);
+              _push2(ssrRenderComponent(VTextField, {
+                "model-value": contextPathInput.value,
+                variant: "solo-filled",
+                label: contextPathEnvKey.value,
+                clearable: "",
+                "hide-details": "",
+                "onUpdate:modelValue": updateContextPath
+              }, null, _parent2, _scopeId));
+              _push2(`<!--]-->`);
+            } else {
+              _push2(`<!---->`);
+            }
+            _push2(`</div>`);
+          } else {
+            return [
+              createVNode("div", null, [
+                createVNode("h2", { class: "text-header" }, "Container Image Tag"),
+                createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, " Select a Docker image tag. You can also type a custom tag manually. "),
+                createVNode(VCombobox, {
+                  "model-value": imageTag.value,
+                  variant: "solo-filled",
+                  items: availableTagItems.value,
+                  "item-title": "title",
+                  "item-value": "value",
+                  "return-object": false,
+                  loading: loadingTags.value,
+                  label: managedRepository.value ? `${managedRepository.value} tag` : "Image tag",
+                  "hide-details": "auto",
+                  hint: "Defaults to latest, then newest non-SNAPSHOT if latest is unavailable.",
+                  "persistent-hint": "",
+                  "onUpdate:modelValue": updateImageTag
+                }, {
+                  item: withCtx(({ props: itemProps, item }) => [
+                    createVNode(VListItem, itemProps, {
+                      append: withCtx(() => [
+                        createVNode(VChip, {
+                          size: "x-small",
+                          color: tagCategoryColor(getItemCategory(item)),
+                          variant: "tonal",
+                          class: "text-caption"
+                        }, {
+                          default: withCtx(() => [
+                            createTextVNode(toDisplayString(tagCategoryLabel(getItemCategory(item))), 1)
+                          ]),
+                          _: 2
+                        }, 1032, ["color"])
+                      ]),
+                      _: 2
+                    }, 1040)
+                  ]),
+                  _: 1
+                }, 8, ["model-value", "items", "loading", "label"]),
+                tagLoadError.value ? (openBlock(), createBlock("p", {
+                  key: 0,
+                  class: "text-caption text-error mt-1"
+                }, toDisplayString(tagLoadError.value), 1)) : createCommentVNode("", true),
+                createVNode(VDivider, { class: "mt-6 mb-8" }),
+                hasPorts.value ? (openBlock(), createBlock(Fragment, { key: 1 }, [
+                  createVNode("h2", { class: "text-header" }, "Docker External Port"),
+                  createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, " The port that makes the container accessible from the outside. "),
+                  createVNode(VNumberInput, {
+                    modelValue: externalPort.value,
+                    "onUpdate:modelValue": [($event) => externalPort.value = $event, updateDockerPort],
+                    variant: "solo-filled",
+                    "hide-details": ""
+                  }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                  createVNode(VDivider, { class: "mt-6 mb-8" })
+                ], 64)) : createCommentVNode("", true),
+                createVNode("h2", { class: "text-header" }, "Docker Container Name"),
+                createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, "The name of the Docker container."),
+                createVNode(VTextField, {
+                  modelValue: containerName.value,
+                  "onUpdate:modelValue": [($event) => containerName.value = $event, updateContainerName],
+                  variant: "solo-filled",
+                  "hide-details": ""
+                }, null, 8, ["modelValue", "onUpdate:modelValue"]),
+                showContextPath.value ? (openBlock(), createBlock(Fragment, { key: 2 }, [
+                  createVNode(VDivider, { class: "mt-6 mb-8" }),
+                  createVNode("h2", { class: "text-header" }, toDisplayString(contextPathLabel.value), 1),
+                  createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, toDisplayString(contextPathDescription.value), 1),
+                  createVNode(VTextField, {
+                    "model-value": contextPathInput.value,
+                    variant: "solo-filled",
+                    label: contextPathEnvKey.value,
+                    clearable: "",
+                    "hide-details": "",
+                    "onUpdate:modelValue": updateContextPath
+                  }, null, 8, ["model-value", "label"])
+                ], 64)) : createCommentVNode("", true)
+              ])
+            ];
+          }
+        }),
+        _: 1
+      }, _parent));
+    };
+  }
+});
+const _sfc_setup$1 = _sfc_main$1.setup;
+_sfc_main$1.setup = (props, ctx) => {
+  const ssrContext = useSSRContext();
+  (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("components/DockerConfig.vue");
+  return _sfc_setup$1 ? _sfc_setup$1(props, ctx) : void 0;
+};
+const __nuxt_component_1 = Object.assign(_sfc_main$1, { __name: "DockerConfig" });
+const VExpansionPanelSymbol = /* @__PURE__ */ Symbol.for("vuetify:v-expansion-panel");
+const makeVExpansionPanelTextProps = propsFactory({
+  ...makeComponentProps(),
+  ...makeLazyProps()
+}, "VExpansionPanelText");
+const VExpansionPanelText = genericComponent()({
+  name: "VExpansionPanelText",
+  props: makeVExpansionPanelTextProps(),
+  setup(props, {
+    slots
+  }) {
+    const expansionPanel = inject(VExpansionPanelSymbol);
+    if (!expansionPanel) throw new Error("[Vuetify] v-expansion-panel-text needs to be placed inside v-expansion-panel");
+    const {
+      hasContent,
+      onAfterLeave
+    } = useLazy(props, expansionPanel.isSelected);
+    useRender(() => createVNode(VExpandTransition, {
+      "onAfterLeave": onAfterLeave
+    }, {
+      default: () => [withDirectives(createElementVNode("div", {
+        "class": normalizeClass(["v-expansion-panel-text", props.class]),
+        "style": normalizeStyle(props.style)
+      }, [slots.default && hasContent.value && createElementVNode("div", {
+        "class": "v-expansion-panel-text__wrapper"
+      }, [slots.default?.()])]), [[vShow, expansionPanel.isSelected.value]])]
+    }));
+    return {};
+  }
+});
+const makeVExpansionPanelTitleProps = propsFactory({
+  color: String,
+  expandIcon: {
+    type: IconValue,
+    default: "$expand"
+  },
+  collapseIcon: {
+    type: IconValue,
+    default: "$collapse"
+  },
+  hideActions: Boolean,
+  focusable: Boolean,
+  static: Boolean,
+  ripple: {
+    type: [Boolean, Object],
+    default: false
+  },
+  readonly: Boolean,
+  ...makeComponentProps(),
+  ...makeDimensionProps()
+}, "VExpansionPanelTitle");
+const VExpansionPanelTitle = genericComponent()({
+  name: "VExpansionPanelTitle",
+  directives: {
+    vRipple: Ripple
+  },
+  props: makeVExpansionPanelTitleProps(),
+  setup(props, {
+    slots
+  }) {
+    const expansionPanel = inject(VExpansionPanelSymbol);
+    if (!expansionPanel) throw new Error("[Vuetify] v-expansion-panel-title needs to be placed inside v-expansion-panel");
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.color);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const slotProps = computed(() => ({
+      collapseIcon: props.collapseIcon,
+      disabled: expansionPanel.disabled.value,
+      expanded: expansionPanel.isSelected.value,
+      expandIcon: props.expandIcon,
+      readonly: props.readonly
+    }));
+    const icon = toRef(() => expansionPanel.isSelected.value ? props.collapseIcon : props.expandIcon);
+    useRender(() => withDirectives(createElementVNode("button", {
+      "class": normalizeClass(["v-expansion-panel-title", {
+        "v-expansion-panel-title--active": expansionPanel.isSelected.value,
+        "v-expansion-panel-title--focusable": props.focusable,
+        "v-expansion-panel-title--static": props.static
+      }, backgroundColorClasses.value, props.class]),
+      "style": normalizeStyle([backgroundColorStyles.value, dimensionStyles.value, props.style]),
+      "type": "button",
+      "tabindex": expansionPanel.disabled.value ? -1 : void 0,
+      "disabled": expansionPanel.disabled.value,
+      "aria-expanded": expansionPanel.isSelected.value,
+      "onClick": !props.readonly ? expansionPanel.toggle : void 0
+    }, [createElementVNode("span", {
+      "class": "v-expansion-panel-title__overlay"
+    }, null), slots.default?.(slotProps.value), !props.hideActions && createVNode(VDefaultsProvider, {
+      "defaults": {
+        VIcon: {
+          icon: icon.value
+        }
+      }
+    }, {
+      default: () => [createElementVNode("span", {
+        "class": "v-expansion-panel-title__icon"
+      }, [slots.actions?.(slotProps.value) ?? createVNode(VIcon, null, null)])]
+    })]), [[Ripple, props.ripple]]));
+    return {};
+  }
+});
+const makeVExpansionPanelProps = propsFactory({
+  title: String,
+  text: String,
+  bgColor: String,
+  ...makeElevationProps(),
+  ...makeGroupItemProps(),
+  ...makeRoundedProps(),
+  ...makeTagProps(),
+  ...makeVExpansionPanelTitleProps(),
+  ...makeVExpansionPanelTextProps()
+}, "VExpansionPanel");
+const VExpansionPanel = genericComponent()({
+  name: "VExpansionPanel",
+  props: makeVExpansionPanelProps(),
+  emits: {
+    "group:selected": (val) => true
+  },
+  setup(props, {
+    slots
+  }) {
+    const groupItem = useGroupItem(props, VExpansionPanelSymbol);
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.bgColor);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const isDisabled = toRef(() => groupItem?.disabled.value || props.disabled);
+    const selectedIndices = computed(() => groupItem.group.items.value.reduce((arr, item, index) => {
+      if (groupItem.group.selected.value.includes(item.id)) arr.push(index);
+      return arr;
+    }, []));
+    const isBeforeSelected = computed(() => {
+      const index = groupItem.group.items.value.findIndex((item) => item.id === groupItem.id);
+      return !groupItem.isSelected.value && selectedIndices.value.some((selectedIndex) => selectedIndex - index === 1);
+    });
+    const isAfterSelected = computed(() => {
+      const index = groupItem.group.items.value.findIndex((item) => item.id === groupItem.id);
+      return !groupItem.isSelected.value && selectedIndices.value.some((selectedIndex) => selectedIndex - index === -1);
+    });
+    provide(VExpansionPanelSymbol, groupItem);
+    useRender(() => {
+      const hasText = !!(slots.text || props.text);
+      const hasTitle = !!(slots.title || props.title);
+      const expansionPanelTitleProps = VExpansionPanelTitle.filterProps(props);
+      const expansionPanelTextProps = VExpansionPanelText.filterProps(props);
+      return createVNode(props.tag, {
+        "class": normalizeClass(["v-expansion-panel", {
+          "v-expansion-panel--active": groupItem.isSelected.value,
+          "v-expansion-panel--before-active": isBeforeSelected.value,
+          "v-expansion-panel--after-active": isAfterSelected.value,
+          "v-expansion-panel--disabled": isDisabled.value
+        }, roundedClasses.value, backgroundColorClasses.value, props.class]),
+        "style": normalizeStyle([backgroundColorStyles.value, props.style])
+      }, {
+        default: () => [createElementVNode("div", {
+          "class": normalizeClass(["v-expansion-panel__shadow", ...elevationClasses.value])
+        }, null), createVNode(VDefaultsProvider, {
+          "defaults": {
+            VExpansionPanelTitle: {
+              ...expansionPanelTitleProps
+            },
+            VExpansionPanelText: {
+              ...expansionPanelTextProps
+            }
+          }
+        }, {
+          default: () => [hasTitle && createVNode(VExpansionPanelTitle, {
+            "key": "title"
+          }, {
+            default: () => [slots.title ? slots.title() : props.title]
+          }), hasText && createVNode(VExpansionPanelText, {
+            "key": "text"
+          }, {
+            default: () => [slots.text ? slots.text() : props.text]
+          }), slots.default?.()]
+        })]
+      });
+    });
+    return {
+      groupItem
+    };
+  }
+});
+const allowedVariants = ["default", "accordion", "inset", "popout"];
+const makeVExpansionPanelsProps = propsFactory({
+  flat: Boolean,
+  ...makeGroupProps(),
+  ...pick(makeVExpansionPanelProps(), ["bgColor", "collapseIcon", "color", "eager", "elevation", "expandIcon", "focusable", "hideActions", "readonly", "ripple", "static"]),
+  ...makeRoundedProps(),
+  ...makeThemeProps(),
+  ...makeComponentProps(),
+  ...makeTagProps(),
+  variant: {
+    type: String,
+    default: "default",
+    validator: (v) => allowedVariants.includes(v)
+  }
+}, "VExpansionPanels");
+const VExpansionPanels = genericComponent()({
+  name: "VExpansionPanels",
+  props: makeVExpansionPanelsProps(),
+  emits: {
+    "update:modelValue": (val) => true
+  },
+  setup(props, {
+    slots
+  }) {
+    const {
+      next,
+      prev
+    } = useGroup(props, VExpansionPanelSymbol);
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const variantClass = toRef(() => props.variant && `v-expansion-panels--variant-${props.variant}`);
+    provideDefaults({
+      VExpansionPanel: {
+        bgColor: toRef(() => props.bgColor),
+        collapseIcon: toRef(() => props.collapseIcon),
+        color: toRef(() => props.color),
+        eager: toRef(() => props.eager),
+        elevation: toRef(() => props.elevation),
+        expandIcon: toRef(() => props.expandIcon),
+        focusable: toRef(() => props.focusable),
+        hideActions: toRef(() => props.hideActions),
+        readonly: toRef(() => props.readonly),
+        ripple: toRef(() => props.ripple),
+        static: toRef(() => props.static)
+      }
+    });
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-expansion-panels", {
+        "v-expansion-panels--flat": props.flat,
+        "v-expansion-panels--tile": props.tile
+      }, themeClasses.value, roundedClasses.value, variantClass.value, props.class]),
+      "style": normalizeStyle(props.style)
+    }, {
+      default: () => [slots.default?.({
+        prev,
+        next
+      })]
+    }));
+    return {
+      next,
+      prev
+    };
+  }
+});
+const _sfc_main = /* @__PURE__ */ defineComponent({
+  ...{
+    name: "ContainerConfig"
+  },
+  __name: "container-config",
+  __ssrInlineRender: true,
+  setup(__props) {
+    useSeoMeta({
+      title: "Container Config | Eclipse BaSyx™",
+      ogTitle: "Container Config | Eclipse BaSyx™"
+    });
+    const appStore = useAppStore();
+    const breadcrumbs = ref([
+      { title: "Home", to: "/" },
+      { title: "Get Started", to: "/get-started/introduction" },
+      { title: "Container Config", to: "/get-started/deployment/container-config" }
+    ]);
+    const dockerCompose = computed(() => appStore.getDockerComposeConfig?.value);
+    const serviceLabelMap = {
+      "aas-environment": "AAS Environment",
+      db: "PostgreSQL",
+      basyx_configuration: "BaSyx Configuration Service",
+      "aas-ui": "AAS UI",
+      influxdb: "InfluxDB",
+      telegraf: "Telegraf"
+    };
+    const serviceOrder = [
+      "aas-environment",
+      "db",
+      "basyx_configuration",
+      "aas-ui",
+      "influxdb",
+      "telegraf"
+    ];
+    const servicesForConfig = computed(() => {
+      const config = dockerCompose.value;
+      if (!config || typeof config === "string" || !("services" in config)) {
+        return [];
+      }
+      const services = config.services;
+      return serviceOrder.filter((id) => Boolean(services[id])).map((id) => ({
+        id,
+        title: serviceLabelMap[id] || id
+      }));
+    });
+    return (_ctx, _push, _parent, _attrs) => {
+      const _component_ClientOnly = __nuxt_component_0$1;
+      const _component_DockerConfig = __nuxt_component_1;
+      _push(ssrRenderComponent(VContainer, mergeProps({
+        class: "py-0 px-4 px-sm-8 px-md-12",
+        fluid: ""
+      }, _attrs), {
+        default: withCtx((_, _push2, _parent2, _scopeId) => {
+          if (_push2) {
+            _push2(ssrRenderComponent(VBreadcrumbs, {
+              class: "px-0 pb-0 text-body-2 mb-3",
+              divider: "›",
+              items: breadcrumbs.value
+            }, null, _parent2, _scopeId));
+            _push2(`<h1 class="mb-8 text-header"${_scopeId}>Custom Configuration</h1><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}> Set custom image tags, ports, container names, and context paths for generated services. </p>`);
+            _push2(ssrRenderComponent(VAlert, { color: "alertCard" }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VRow, { align: "center" }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VCol, {
+                          cols: "auto",
+                          class: "pr-0"
+                        }, {
+                          default: withCtx((_4, _push5, _parent5, _scopeId4) => {
+                            if (_push5) {
+                              _push5(ssrRenderComponent(VIcon, { color: "subheader" }, {
+                                default: withCtx((_5, _push6, _parent6, _scopeId5) => {
+                                  if (_push6) {
+                                    _push6(`mdi-alert-circle-outline`);
+                                  } else {
+                                    return [
+                                      createTextVNode("mdi-alert-circle-outline")
+                                    ];
+                                  }
+                                }),
+                                _: 1
+                              }, _parent5, _scopeId4));
+                            } else {
+                              return [
+                                createVNode(VIcon, { color: "subheader" }, {
+                                  default: withCtx(() => [
+                                    createTextVNode("mdi-alert-circle-outline")
+                                  ]),
+                                  _: 1
+                                })
+                              ];
+                            }
+                          }),
+                          _: 1
+                        }, _parent4, _scopeId3));
+                        _push4(ssrRenderComponent(VCol, null, {
+                          default: withCtx((_4, _push5, _parent5, _scopeId4) => {
+                            if (_push5) {
+                              _push5(`<div class="font-weight-medium text-header"${_scopeId4}>Note</div>`);
+                            } else {
+                              return [
+                                createVNode("div", { class: "font-weight-medium text-header" }, "Note")
+                              ];
+                            }
+                          }),
+                          _: 1
+                        }, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VCol, {
+                            cols: "auto",
+                            class: "pr-0"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VIcon, { color: "subheader" }, {
+                                default: withCtx(() => [
+                                  createTextVNode("mdi-alert-circle-outline")
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, null, {
+                            default: withCtx(() => [
+                              createVNode("div", { class: "font-weight-medium text-header" }, "Note")
+                            ]),
+                            _: 1
+                          })
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(`<p class="text-subheader font-weight-medium ms-0 ms-sm-12 mt-2"${_scopeId2}> Ensure your port mappings and container names are unique. </p>`);
+                } else {
+                  return [
+                    createVNode(VRow, { align: "center" }, {
+                      default: withCtx(() => [
+                        createVNode(VCol, {
+                          cols: "auto",
+                          class: "pr-0"
+                        }, {
+                          default: withCtx(() => [
+                            createVNode(VIcon, { color: "subheader" }, {
+                              default: withCtx(() => [
+                                createTextVNode("mdi-alert-circle-outline")
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        }),
+                        createVNode(VCol, null, {
+                          default: withCtx(() => [
+                            createVNode("div", { class: "font-weight-medium text-header" }, "Note")
+                          ]),
+                          _: 1
+                        })
+                      ]),
+                      _: 1
+                    }),
+                    createVNode("p", { class: "text-subheader font-weight-medium ms-0 ms-sm-12 mt-2" }, " Ensure your port mappings and container names are unique. ")
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(_component_ClientOnly, null, {
+              fallback: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VAlert, {
+                    color: "primary",
+                    variant: "outlined",
+                    class: "bg-alertCard mt-8 mb-8"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(` Loading container settings... `);
+                      } else {
+                        return [
+                          createTextVNode(" Loading container settings... ")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VAlert, {
+                      color: "primary",
+                      variant: "outlined",
+                      class: "bg-alertCard mt-8 mb-8"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Loading container settings... ")
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              })
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VCardActions, { class: "px-0 mb-8" }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/deployment/integration"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`Back`);
+                      } else {
+                        return [
+                          createTextVNode("Back")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VSpacer, null, null, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/deployment/access-control"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`Next`);
+                      } else {
+                        return [
+                          createTextVNode("Next")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      "prepend-icon": "mdi-arrow-left",
+                      to: "/get-started/deployment/integration"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode("Back")
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VSpacer),
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      color: "primary",
+                      "append-icon": "mdi-arrow-right",
+                      to: "/get-started/deployment/access-control"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode("Next")
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+          } else {
+            return [
+              createVNode(VBreadcrumbs, {
+                class: "px-0 pb-0 text-body-2 mb-3",
+                divider: "›",
+                items: breadcrumbs.value
+              }, null, 8, ["items"]),
+              createVNode("h1", { class: "mb-8 text-header" }, "Custom Configuration"),
+              createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, " Set custom image tags, ports, container names, and context paths for generated services. "),
+              createVNode(VAlert, { color: "alertCard" }, {
+                default: withCtx(() => [
+                  createVNode(VRow, { align: "center" }, {
+                    default: withCtx(() => [
+                      createVNode(VCol, {
+                        cols: "auto",
+                        class: "pr-0"
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VIcon, { color: "subheader" }, {
+                            default: withCtx(() => [
+                              createTextVNode("mdi-alert-circle-outline")
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      }),
+                      createVNode(VCol, null, {
+                        default: withCtx(() => [
+                          createVNode("div", { class: "font-weight-medium text-header" }, "Note")
+                        ]),
+                        _: 1
+                      })
+                    ]),
+                    _: 1
+                  }),
+                  createVNode("p", { class: "text-subheader font-weight-medium ms-0 ms-sm-12 mt-2" }, " Ensure your port mappings and container names are unique. ")
+                ]),
+                _: 1
+              }),
+              createVNode(_component_ClientOnly, null, {
+                fallback: withCtx(() => [
+                  createVNode(VAlert, {
+                    color: "primary",
+                    variant: "outlined",
+                    class: "bg-alertCard mt-8 mb-8"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode(" Loading container settings... ")
+                    ]),
+                    _: 1
+                  })
+                ]),
+                default: withCtx(() => [
+                  createVNode(VExpansionPanels, { class: "mt-8 mb-8" }, {
+                    default: withCtx(() => [
+                      (openBlock(true), createBlock(Fragment, null, renderList(servicesForConfig.value, (service) => {
+                        return openBlock(), createBlock(VExpansionPanel, {
+                          key: service.id,
+                          title: service.title
+                        }, {
+                          default: withCtx(() => [
+                            createVNode(VExpansionPanelText, null, {
+                              default: withCtx(() => [
+                                createVNode(_component_DockerConfig, {
+                                  "service-name": service.id
+                                }, null, 8, ["service-name"])
+                              ]),
+                              _: 2
+                            }, 1024)
+                          ]),
+                          _: 2
+                        }, 1032, ["title"]);
+                      }), 128))
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              }),
+              createVNode(VCardActions, { class: "px-0 mb-8" }, {
+                default: withCtx(() => [
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/deployment/integration"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode("Back")
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VSpacer),
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/deployment/access-control"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode("Next")
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ];
+          }
+        }),
+        _: 1
+      }, _parent));
+    };
+  }
+});
+const _sfc_setup = _sfc_main.setup;
+_sfc_main.setup = (props, ctx) => {
+  const ssrContext = useSSRContext();
+  (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("pages/get-started/deployment/container-config.vue");
+  return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
+};
+
+export { _sfc_main as default };
+//# sourceMappingURL=container-config-BMFUmgzJ.mjs.map

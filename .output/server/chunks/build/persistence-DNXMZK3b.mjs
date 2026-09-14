@@ -1,0 +1,1318 @@
+import { defineComponent, ref, computed, watch, mergeProps, withCtx, createTextVNode, createVNode, useSSRContext } from 'vue';
+import { ssrRenderComponent } from 'vue/server-renderer';
+import { bz as useSeoMeta, b0 as useAppStore, m as VIcon, k as VBtn } from './server.mjs';
+import { V as VContainer } from './VContainer-BTz4nlxi.mjs';
+import { V as VBreadcrumbs } from './VBreadcrumbs-Cwgk5YXB.mjs';
+import { V as VAlert } from './VAlert-Bcj1ynP6.mjs';
+import { a as VRow, V as VCol } from './VRow-DT77qovv.mjs';
+import { V as VKbd } from './VKbd-jkyggUsO.mjs';
+import { V as VDivider } from './VDivider-D2ayNrXO.mjs';
+import { V as VTextField } from './VTextField-CmLAcn2i.mjs';
+import { V as VNumberInput } from './VNumberInput-B1oWBGBG.mjs';
+import { V as VCardActions } from './VCardActions-_afJsMdG.mjs';
+import { V as VSpacer } from './VSpacer-D_joSj59.mjs';
+import '../nitro/nitro.mjs';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import '../routes/renderer.mjs';
+import 'vue-bundle-renderer/runtime';
+import 'unhead/server';
+import 'devalue';
+import 'unhead/plugins';
+import 'unhead/utils';
+import 'pinia';
+import 'perfect-debounce';
+import 'js-yaml';
+import 'lz-string';
+import './autofocus-DXczjZSo.mjs';
+import './VField-CBPZxNBP.mjs';
+import './VInput-CF1s2jmS.mjs';
+
+const _sfc_main = /* @__PURE__ */ defineComponent({
+  ...{
+    name: "Persistence"
+  },
+  __name: "persistence",
+  __ssrInlineRender: true,
+  setup(__props) {
+    useSeoMeta({
+      title: "Persistence Backend | Eclipse BaSyx™",
+      ogTitle: "Persistence Backend | Eclipse BaSyx™"
+    });
+    const DEFAULTS = {
+      host: "db",
+      port: "5432",
+      dbName: "basyxTestDB",
+      user: "admin",
+      password: "admin123",
+      maxOpen: "500",
+      maxIdle: "500",
+      maxLifetimeMinutes: "5"
+    };
+    const appStore = useAppStore();
+    const breadcrumbs = ref([
+      { title: "Home", to: "/" },
+      { title: "Get Started", to: "/get-started/introduction" },
+      { title: "Persistence Backend", to: "/get-started/behaviour/persistence" }
+    ]);
+    const dockerComposeConfigObject = computed(() => appStore.getDockerComposeConfig);
+    const postgresHost = ref(DEFAULTS.host);
+    const postgresPort = ref(Number(DEFAULTS.port));
+    const postgresDbName = ref(DEFAULTS.dbName);
+    const postgresUser = ref(DEFAULTS.user);
+    const postgresPassword = ref(DEFAULTS.password);
+    const showPostgresPassword = ref(false);
+    const postgresMaxOpenConnections = ref(Number(DEFAULTS.maxOpen));
+    const postgresMaxIdleConnections = ref(Number(DEFAULTS.maxIdle));
+    const postgresConnectionLifetimeMinutes = ref(Number(DEFAULTS.maxLifetimeMinutes));
+    function getEnvVar(env, key, fallback) {
+      const prefix = `${key}=`;
+      const entry = env.find((item) => item.startsWith(prefix));
+      if (!entry) {
+        return fallback;
+      }
+      return entry.slice(prefix.length);
+    }
+    function setEnvVar(env, key, value) {
+      const prefix = `${key}=`;
+      const index = env.findIndex((item) => item.startsWith(prefix));
+      if (index >= 0) {
+        env[index] = `${key}=${value}`;
+        return;
+      }
+      env.push(`${key}=${value}`);
+    }
+    function syncFromCompose() {
+      const compose = dockerComposeConfigObject.value?.value;
+      if (!compose || typeof compose !== "object" || !("services" in compose)) {
+        return;
+      }
+      const services = compose.services;
+      const aasEnvService = services["aas-environment"];
+      if (!aasEnvService?.environment || !Array.isArray(aasEnvService.environment)) {
+        return;
+      }
+      postgresHost.value = getEnvVar(aasEnvService.environment, "POSTGRES_HOST", DEFAULTS.host);
+      postgresPort.value = Number(getEnvVar(aasEnvService.environment, "POSTGRES_PORT", DEFAULTS.port));
+      postgresDbName.value = getEnvVar(aasEnvService.environment, "POSTGRES_DBNAME", DEFAULTS.dbName);
+      postgresUser.value = getEnvVar(aasEnvService.environment, "POSTGRES_USER", DEFAULTS.user);
+      postgresPassword.value = getEnvVar(
+        aasEnvService.environment,
+        "POSTGRES_PASSWORD",
+        DEFAULTS.password
+      );
+      postgresMaxOpenConnections.value = Number(
+        getEnvVar(aasEnvService.environment, "POSTGRES_MAXOPENCONNECTIONS", DEFAULTS.maxOpen)
+      );
+      postgresMaxIdleConnections.value = Number(
+        getEnvVar(aasEnvService.environment, "POSTGRES_MAXIDLECONNECTIONS", DEFAULTS.maxIdle)
+      );
+      postgresConnectionLifetimeMinutes.value = Number(
+        getEnvVar(
+          aasEnvService.environment,
+          "POSTGRES_CONNMAXLIFETIMEMINUTES",
+          DEFAULTS.maxLifetimeMinutes
+        )
+      );
+    }
+    watch(
+      () => dockerComposeConfigObject.value?.value,
+      () => {
+        syncFromCompose();
+      },
+      { immediate: true }
+    );
+    function applyPersistenceSettings() {
+      if (!dockerComposeConfigObject.value?.value || typeof dockerComposeConfigObject.value.value !== "object") {
+        return;
+      }
+      const localDockerComposeConfig = { ...dockerComposeConfigObject.value };
+      const dockerConfig = localDockerComposeConfig.value;
+      const services = dockerConfig.services;
+      const aasEnvService = services["aas-environment"];
+      const configurationService = services["basyx_configuration"];
+      const postgresService = services.db;
+      if (!aasEnvService || !configurationService || !Array.isArray(aasEnvService.environment) || !Array.isArray(configurationService.environment)) {
+        return;
+      }
+      const values = {
+        host: postgresHost.value.trim() || DEFAULTS.host,
+        port: String(postgresPort.value || Number(DEFAULTS.port)),
+        dbName: postgresDbName.value.trim() || DEFAULTS.dbName,
+        user: postgresUser.value.trim() || DEFAULTS.user,
+        password: postgresPassword.value || DEFAULTS.password,
+        maxOpen: String(postgresMaxOpenConnections.value || Number(DEFAULTS.maxOpen)),
+        maxIdle: String(postgresMaxIdleConnections.value || Number(DEFAULTS.maxIdle)),
+        maxLifetimeMinutes: String(
+          postgresConnectionLifetimeMinutes.value || Number(DEFAULTS.maxLifetimeMinutes)
+        )
+      };
+      const envTargets = [aasEnvService.environment, configurationService.environment];
+      envTargets.forEach((env) => {
+        setEnvVar(env, "POSTGRES_HOST", values.host);
+        setEnvVar(env, "POSTGRES_PORT", values.port);
+        setEnvVar(env, "POSTGRES_DBNAME", values.dbName);
+        setEnvVar(env, "POSTGRES_USER", values.user);
+        setEnvVar(env, "POSTGRES_PASSWORD", values.password);
+        setEnvVar(env, "POSTGRES_MAXOPENCONNECTIONS", values.maxOpen);
+        setEnvVar(env, "POSTGRES_MAXIDLECONNECTIONS", values.maxIdle);
+        setEnvVar(env, "POSTGRES_CONNMAXLIFETIMEMINUTES", values.maxLifetimeMinutes);
+      });
+      if (postgresService?.environment && !Array.isArray(postgresService.environment)) {
+        postgresService.environment.POSTGRES_USER = values.user;
+        postgresService.environment.POSTGRES_PASSWORD = values.password;
+        postgresService.environment.POSTGRES_DB = values.dbName;
+      }
+      localDockerComposeConfig.value = dockerConfig;
+      appStore.setDockerComposeConfig(localDockerComposeConfig);
+    }
+    function resetToDefaults() {
+      postgresHost.value = DEFAULTS.host;
+      postgresPort.value = Number(DEFAULTS.port);
+      postgresDbName.value = DEFAULTS.dbName;
+      postgresUser.value = DEFAULTS.user;
+      postgresPassword.value = DEFAULTS.password;
+      postgresMaxOpenConnections.value = Number(DEFAULTS.maxOpen);
+      postgresMaxIdleConnections.value = Number(DEFAULTS.maxIdle);
+      postgresConnectionLifetimeMinutes.value = Number(DEFAULTS.maxLifetimeMinutes);
+      applyPersistenceSettings();
+    }
+    return (_ctx, _push, _parent, _attrs) => {
+      _push(ssrRenderComponent(VContainer, mergeProps({
+        class: "py-0 px-4 px-sm-8 px-md-12",
+        fluid: ""
+      }, _attrs), {
+        default: withCtx((_, _push2, _parent2, _scopeId) => {
+          if (_push2) {
+            _push2(ssrRenderComponent(VBreadcrumbs, {
+              class: "px-0 pb-0 text-body-2 mb-3",
+              divider: "›",
+              items: breadcrumbs.value
+            }, null, _parent2, _scopeId));
+            _push2(`<h1 class="mb-8 text-header"${_scopeId}>Persistence Backend</h1><p class="text-normalText mt-8 mb-5 text-subtitle-1"${_scopeId}> The Go-based setup uses PostgreSQL as the persistence backend for BaSyx core services. </p><p class="text-normalText mt-3 mb-2 text-subtitle-1"${_scopeId}> Configure the PostgreSQL connection and pool settings below. These values are written to the AAS Environment and Configuration Service environment variables. </p>`);
+            _push2(ssrRenderComponent(VAlert, {
+              color: "alertCard",
+              class: "mt-8 mb-8"
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VRow, { align: "center" }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VCol, {
+                          cols: "auto",
+                          class: "pr-0"
+                        }, {
+                          default: withCtx((_4, _push5, _parent5, _scopeId4) => {
+                            if (_push5) {
+                              _push5(ssrRenderComponent(VIcon, { color: "subheader" }, {
+                                default: withCtx((_5, _push6, _parent6, _scopeId5) => {
+                                  if (_push6) {
+                                    _push6(`mdi-database-cog`);
+                                  } else {
+                                    return [
+                                      createTextVNode("mdi-database-cog")
+                                    ];
+                                  }
+                                }),
+                                _: 1
+                              }, _parent5, _scopeId4));
+                            } else {
+                              return [
+                                createVNode(VIcon, { color: "subheader" }, {
+                                  default: withCtx(() => [
+                                    createTextVNode("mdi-database-cog")
+                                  ]),
+                                  _: 1
+                                })
+                              ];
+                            }
+                          }),
+                          _: 1
+                        }, _parent4, _scopeId3));
+                        _push4(ssrRenderComponent(VCol, null, {
+                          default: withCtx((_4, _push5, _parent5, _scopeId4) => {
+                            if (_push5) {
+                              _push5(`<div class="font-weight-medium text-header"${_scopeId4}>What these settings control</div>`);
+                            } else {
+                              return [
+                                createVNode("div", { class: "font-weight-medium text-header" }, "What these settings control")
+                              ];
+                            }
+                          }),
+                          _: 1
+                        }, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VCol, {
+                            cols: "auto",
+                            class: "pr-0"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VIcon, { color: "subheader" }, {
+                                default: withCtx(() => [
+                                  createTextVNode("mdi-database-cog")
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, null, {
+                            default: withCtx(() => [
+                              createVNode("div", { class: "font-weight-medium text-header" }, "What these settings control")
+                            ]),
+                            _: 1
+                          })
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(`<ul class="text-subheader font-weight-medium mt-2 ms-6"${_scopeId2}><li${_scopeId2}>`);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_HOST`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_HOST")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` and `);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_PORT`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_PORT")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` define the database endpoint. </li><li${_scopeId2}>`);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_DBNAME`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_DBNAME")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(`, `);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_USER`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_USER")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(`, and `);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_PASSWORD`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_PASSWORD")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` define credentials. </li><li${_scopeId2}>`);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_MAXOPENCONNECTIONS`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_MAXOPENCONNECTIONS")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` limits total open DB connections.</li><li${_scopeId2}>`);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_MAXIDLECONNECTIONS`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_MAXIDLECONNECTIONS")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` controls how many idle connections are kept. </li><li${_scopeId2}>`);
+                  _push3(ssrRenderComponent(VKbd, null, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`POSTGRES_CONNMAXLIFETIMEMINUTES`);
+                      } else {
+                        return [
+                          createTextVNode("POSTGRES_CONNMAXLIFETIMEMINUTES")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(` sets how long a connection can be reused. </li></ul>`);
+                } else {
+                  return [
+                    createVNode(VRow, { align: "center" }, {
+                      default: withCtx(() => [
+                        createVNode(VCol, {
+                          cols: "auto",
+                          class: "pr-0"
+                        }, {
+                          default: withCtx(() => [
+                            createVNode(VIcon, { color: "subheader" }, {
+                              default: withCtx(() => [
+                                createTextVNode("mdi-database-cog")
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        }),
+                        createVNode(VCol, null, {
+                          default: withCtx(() => [
+                            createVNode("div", { class: "font-weight-medium text-header" }, "What these settings control")
+                          ]),
+                          _: 1
+                        })
+                      ]),
+                      _: 1
+                    }),
+                    createVNode("ul", { class: "text-subheader font-weight-medium mt-2 ms-6" }, [
+                      createVNode("li", null, [
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_HOST")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" and "),
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_PORT")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" define the database endpoint. ")
+                      ]),
+                      createVNode("li", null, [
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_DBNAME")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(", "),
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_USER")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(", and "),
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_PASSWORD")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" define credentials. ")
+                      ]),
+                      createVNode("li", null, [
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_MAXOPENCONNECTIONS")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" limits total open DB connections.")
+                      ]),
+                      createVNode("li", null, [
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_MAXIDLECONNECTIONS")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" controls how many idle connections are kept. ")
+                      ]),
+                      createVNode("li", null, [
+                        createVNode(VKbd, null, {
+                          default: withCtx(() => [
+                            createTextVNode("POSTGRES_CONNMAXLIFETIMEMINUTES")
+                          ]),
+                          _: 1
+                        }),
+                        createTextVNode(" sets how long a connection can be reused. ")
+                      ])
+                    ])
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VDivider, { class: "mt-12 mb-8" }, null, _parent2, _scopeId));
+            _push2(`<h2 class="text-header"${_scopeId}>PostgreSQL Settings</h2>`);
+            _push2(ssrRenderComponent(VRow, {
+              class: "mt-4",
+              density: "compact"
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "6"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VTextField, {
+                          modelValue: postgresHost.value,
+                          "onUpdate:modelValue": ($event) => postgresHost.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_HOST",
+                          "hide-details": "auto",
+                          hint: "Hostname of the PostgreSQL service (usually db).",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VTextField, {
+                            modelValue: postgresHost.value,
+                            "onUpdate:modelValue": ($event) => postgresHost.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_HOST",
+                            "hide-details": "auto",
+                            hint: "Hostname of the PostgreSQL service (usually db).",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "6"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VNumberInput, {
+                          modelValue: postgresPort.value,
+                          "onUpdate:modelValue": ($event) => postgresPort.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_PORT",
+                          "hide-details": "auto",
+                          hint: "PostgreSQL port used by BaSyx components.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VNumberInput, {
+                            modelValue: postgresPort.value,
+                            "onUpdate:modelValue": ($event) => postgresPort.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_PORT",
+                            "hide-details": "auto",
+                            hint: "PostgreSQL port used by BaSyx components.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VTextField, {
+                          modelValue: postgresDbName.value,
+                          "onUpdate:modelValue": ($event) => postgresDbName.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_DBNAME",
+                          "hide-details": "auto",
+                          hint: "Database name used by BaSyx.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VTextField, {
+                            modelValue: postgresDbName.value,
+                            "onUpdate:modelValue": ($event) => postgresDbName.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_DBNAME",
+                            "hide-details": "auto",
+                            hint: "Database name used by BaSyx.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VTextField, {
+                          modelValue: postgresUser.value,
+                          "onUpdate:modelValue": ($event) => postgresUser.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_USER",
+                          "hide-details": "auto",
+                          hint: "Database user account.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VTextField, {
+                            modelValue: postgresUser.value,
+                            "onUpdate:modelValue": ($event) => postgresUser.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_USER",
+                            "hide-details": "auto",
+                            hint: "Database user account.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VTextField, {
+                          modelValue: postgresPassword.value,
+                          "onUpdate:modelValue": ($event) => postgresPassword.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_PASSWORD",
+                          type: showPostgresPassword.value ? "text" : "password",
+                          "append-inner-icon": showPostgresPassword.value ? "mdi-eye-off" : "mdi-eye",
+                          "hide-details": "auto",
+                          hint: "Password for the configured database user.",
+                          "persistent-hint": "",
+                          "onClick:appendInner": ($event) => showPostgresPassword.value = !showPostgresPassword.value
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VTextField, {
+                            modelValue: postgresPassword.value,
+                            "onUpdate:modelValue": ($event) => postgresPassword.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_PASSWORD",
+                            type: showPostgresPassword.value ? "text" : "password",
+                            "append-inner-icon": showPostgresPassword.value ? "mdi-eye-off" : "mdi-eye",
+                            "hide-details": "auto",
+                            hint: "Password for the configured database user.",
+                            "persistent-hint": "",
+                            "onClick:appendInner": ($event) => showPostgresPassword.value = !showPostgresPassword.value
+                          }, null, 8, ["modelValue", "onUpdate:modelValue", "type", "append-inner-icon", "onClick:appendInner"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VNumberInput, {
+                          modelValue: postgresMaxOpenConnections.value,
+                          "onUpdate:modelValue": ($event) => postgresMaxOpenConnections.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_MAXOPENCONNECTIONS",
+                          "hide-details": "auto",
+                          hint: "Upper limit for concurrent open DB connections.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VNumberInput, {
+                            modelValue: postgresMaxOpenConnections.value,
+                            "onUpdate:modelValue": ($event) => postgresMaxOpenConnections.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_MAXOPENCONNECTIONS",
+                            "hide-details": "auto",
+                            hint: "Upper limit for concurrent open DB connections.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VNumberInput, {
+                          modelValue: postgresMaxIdleConnections.value,
+                          "onUpdate:modelValue": ($event) => postgresMaxIdleConnections.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_MAXIDLECONNECTIONS",
+                          "hide-details": "auto",
+                          hint: "How many idle connections stay pooled.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VNumberInput, {
+                            modelValue: postgresMaxIdleConnections.value,
+                            "onUpdate:modelValue": ($event) => postgresMaxIdleConnections.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_MAXIDLECONNECTIONS",
+                            "hide-details": "auto",
+                            hint: "How many idle connections stay pooled.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(ssrRenderComponent(VNumberInput, {
+                          modelValue: postgresConnectionLifetimeMinutes.value,
+                          "onUpdate:modelValue": ($event) => postgresConnectionLifetimeMinutes.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_CONNMAXLIFETIMEMINUTES",
+                          "hide-details": "auto",
+                          hint: "Maximum connection lifetime in minutes.",
+                          "persistent-hint": ""
+                        }, null, _parent4, _scopeId3));
+                      } else {
+                        return [
+                          createVNode(VNumberInput, {
+                            modelValue: postgresConnectionLifetimeMinutes.value,
+                            "onUpdate:modelValue": ($event) => postgresConnectionLifetimeMinutes.value = $event,
+                            variant: "solo-filled",
+                            label: "POSTGRES_CONNMAXLIFETIMEMINUTES",
+                            "hide-details": "auto",
+                            hint: "Maximum connection lifetime in minutes.",
+                            "persistent-hint": ""
+                          }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VTextField, {
+                          modelValue: postgresHost.value,
+                          "onUpdate:modelValue": ($event) => postgresHost.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_HOST",
+                          "hide-details": "auto",
+                          hint: "Hostname of the PostgreSQL service (usually db).",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VNumberInput, {
+                          modelValue: postgresPort.value,
+                          "onUpdate:modelValue": ($event) => postgresPort.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_PORT",
+                          "hide-details": "auto",
+                          hint: "PostgreSQL port used by BaSyx components.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VTextField, {
+                          modelValue: postgresDbName.value,
+                          "onUpdate:modelValue": ($event) => postgresDbName.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_DBNAME",
+                          "hide-details": "auto",
+                          hint: "Database name used by BaSyx.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VTextField, {
+                          modelValue: postgresUser.value,
+                          "onUpdate:modelValue": ($event) => postgresUser.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_USER",
+                          "hide-details": "auto",
+                          hint: "Database user account.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VTextField, {
+                          modelValue: postgresPassword.value,
+                          "onUpdate:modelValue": ($event) => postgresPassword.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_PASSWORD",
+                          type: showPostgresPassword.value ? "text" : "password",
+                          "append-inner-icon": showPostgresPassword.value ? "mdi-eye-off" : "mdi-eye",
+                          "hide-details": "auto",
+                          hint: "Password for the configured database user.",
+                          "persistent-hint": "",
+                          "onClick:appendInner": ($event) => showPostgresPassword.value = !showPostgresPassword.value
+                        }, null, 8, ["modelValue", "onUpdate:modelValue", "type", "append-inner-icon", "onClick:appendInner"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VNumberInput, {
+                          modelValue: postgresMaxOpenConnections.value,
+                          "onUpdate:modelValue": ($event) => postgresMaxOpenConnections.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_MAXOPENCONNECTIONS",
+                          "hide-details": "auto",
+                          hint: "Upper limit for concurrent open DB connections.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VNumberInput, {
+                          modelValue: postgresMaxIdleConnections.value,
+                          "onUpdate:modelValue": ($event) => postgresMaxIdleConnections.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_MAXIDLECONNECTIONS",
+                          "hide-details": "auto",
+                          hint: "How many idle connections stay pooled.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VCol, {
+                      cols: "12",
+                      md: "4"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VNumberInput, {
+                          modelValue: postgresConnectionLifetimeMinutes.value,
+                          "onUpdate:modelValue": ($event) => postgresConnectionLifetimeMinutes.value = $event,
+                          variant: "solo-filled",
+                          label: "POSTGRES_CONNMAXLIFETIMEMINUTES",
+                          "hide-details": "auto",
+                          hint: "Maximum connection lifetime in minutes.",
+                          "persistent-hint": ""
+                        }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VBtn, {
+              class: "mt-6 mb-2",
+              block: "",
+              variant: "tonal",
+              onClick: ($event) => applyPersistenceSettings()
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(` Apply Persistence Settings `);
+                } else {
+                  return [
+                    createTextVNode(" Apply Persistence Settings ")
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VBtn, {
+              class: "mb-8",
+              block: "",
+              color: "secondary",
+              variant: "text",
+              onClick: ($event) => resetToDefaults()
+            }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(` Reset To Defaults `);
+                } else {
+                  return [
+                    createTextVNode(" Reset To Defaults ")
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+            _push2(ssrRenderComponent(VCardActions, { class: "px-0 mb-8" }, {
+              default: withCtx((_2, _push3, _parent3, _scopeId2) => {
+                if (_push3) {
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/application"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(`Back`);
+                      } else {
+                        return [
+                          createTextVNode("Back")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VSpacer, null, null, _parent3, _scopeId2));
+                  _push3(ssrRenderComponent(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/behaviour/eventing"
+                  }, {
+                    default: withCtx((_3, _push4, _parent4, _scopeId3) => {
+                      if (_push4) {
+                        _push4(` Next `);
+                      } else {
+                        return [
+                          createTextVNode(" Next ")
+                        ];
+                      }
+                    }),
+                    _: 1
+                  }, _parent3, _scopeId2));
+                } else {
+                  return [
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      "prepend-icon": "mdi-arrow-left",
+                      to: "/get-started/application"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode("Back")
+                      ]),
+                      _: 1
+                    }),
+                    createVNode(VSpacer),
+                    createVNode(VBtn, {
+                      variant: "tonal",
+                      color: "primary",
+                      "append-icon": "mdi-arrow-right",
+                      to: "/get-started/behaviour/eventing"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Next ")
+                      ]),
+                      _: 1
+                    })
+                  ];
+                }
+              }),
+              _: 1
+            }, _parent2, _scopeId));
+          } else {
+            return [
+              createVNode(VBreadcrumbs, {
+                class: "px-0 pb-0 text-body-2 mb-3",
+                divider: "›",
+                items: breadcrumbs.value
+              }, null, 8, ["items"]),
+              createVNode("h1", { class: "mb-8 text-header" }, "Persistence Backend"),
+              createVNode("p", { class: "text-normalText mt-8 mb-5 text-subtitle-1" }, " The Go-based setup uses PostgreSQL as the persistence backend for BaSyx core services. "),
+              createVNode("p", { class: "text-normalText mt-3 mb-2 text-subtitle-1" }, " Configure the PostgreSQL connection and pool settings below. These values are written to the AAS Environment and Configuration Service environment variables. "),
+              createVNode(VAlert, {
+                color: "alertCard",
+                class: "mt-8 mb-8"
+              }, {
+                default: withCtx(() => [
+                  createVNode(VRow, { align: "center" }, {
+                    default: withCtx(() => [
+                      createVNode(VCol, {
+                        cols: "auto",
+                        class: "pr-0"
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VIcon, { color: "subheader" }, {
+                            default: withCtx(() => [
+                              createTextVNode("mdi-database-cog")
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      }),
+                      createVNode(VCol, null, {
+                        default: withCtx(() => [
+                          createVNode("div", { class: "font-weight-medium text-header" }, "What these settings control")
+                        ]),
+                        _: 1
+                      })
+                    ]),
+                    _: 1
+                  }),
+                  createVNode("ul", { class: "text-subheader font-weight-medium mt-2 ms-6" }, [
+                    createVNode("li", null, [
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_HOST")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" and "),
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_PORT")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" define the database endpoint. ")
+                    ]),
+                    createVNode("li", null, [
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_DBNAME")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(", "),
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_USER")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(", and "),
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_PASSWORD")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" define credentials. ")
+                    ]),
+                    createVNode("li", null, [
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_MAXOPENCONNECTIONS")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" limits total open DB connections.")
+                    ]),
+                    createVNode("li", null, [
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_MAXIDLECONNECTIONS")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" controls how many idle connections are kept. ")
+                    ]),
+                    createVNode("li", null, [
+                      createVNode(VKbd, null, {
+                        default: withCtx(() => [
+                          createTextVNode("POSTGRES_CONNMAXLIFETIMEMINUTES")
+                        ]),
+                        _: 1
+                      }),
+                      createTextVNode(" sets how long a connection can be reused. ")
+                    ])
+                  ])
+                ]),
+                _: 1
+              }),
+              createVNode(VDivider, { class: "mt-12 mb-8" }),
+              createVNode("h2", { class: "text-header" }, "PostgreSQL Settings"),
+              createVNode(VRow, {
+                class: "mt-4",
+                density: "compact"
+              }, {
+                default: withCtx(() => [
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "6"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VTextField, {
+                        modelValue: postgresHost.value,
+                        "onUpdate:modelValue": ($event) => postgresHost.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_HOST",
+                        "hide-details": "auto",
+                        hint: "Hostname of the PostgreSQL service (usually db).",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "6"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VNumberInput, {
+                        modelValue: postgresPort.value,
+                        "onUpdate:modelValue": ($event) => postgresPort.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_PORT",
+                        "hide-details": "auto",
+                        hint: "PostgreSQL port used by BaSyx components.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VTextField, {
+                        modelValue: postgresDbName.value,
+                        "onUpdate:modelValue": ($event) => postgresDbName.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_DBNAME",
+                        "hide-details": "auto",
+                        hint: "Database name used by BaSyx.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VTextField, {
+                        modelValue: postgresUser.value,
+                        "onUpdate:modelValue": ($event) => postgresUser.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_USER",
+                        "hide-details": "auto",
+                        hint: "Database user account.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VTextField, {
+                        modelValue: postgresPassword.value,
+                        "onUpdate:modelValue": ($event) => postgresPassword.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_PASSWORD",
+                        type: showPostgresPassword.value ? "text" : "password",
+                        "append-inner-icon": showPostgresPassword.value ? "mdi-eye-off" : "mdi-eye",
+                        "hide-details": "auto",
+                        hint: "Password for the configured database user.",
+                        "persistent-hint": "",
+                        "onClick:appendInner": ($event) => showPostgresPassword.value = !showPostgresPassword.value
+                      }, null, 8, ["modelValue", "onUpdate:modelValue", "type", "append-inner-icon", "onClick:appendInner"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VNumberInput, {
+                        modelValue: postgresMaxOpenConnections.value,
+                        "onUpdate:modelValue": ($event) => postgresMaxOpenConnections.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_MAXOPENCONNECTIONS",
+                        "hide-details": "auto",
+                        hint: "Upper limit for concurrent open DB connections.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VNumberInput, {
+                        modelValue: postgresMaxIdleConnections.value,
+                        "onUpdate:modelValue": ($event) => postgresMaxIdleConnections.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_MAXIDLECONNECTIONS",
+                        "hide-details": "auto",
+                        hint: "How many idle connections stay pooled.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCol, {
+                    cols: "12",
+                    md: "4"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(VNumberInput, {
+                        modelValue: postgresConnectionLifetimeMinutes.value,
+                        "onUpdate:modelValue": ($event) => postgresConnectionLifetimeMinutes.value = $event,
+                        variant: "solo-filled",
+                        label: "POSTGRES_CONNMAXLIFETIMEMINUTES",
+                        "hide-details": "auto",
+                        hint: "Maximum connection lifetime in minutes.",
+                        "persistent-hint": ""
+                      }, null, 8, ["modelValue", "onUpdate:modelValue"])
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              }),
+              createVNode(VBtn, {
+                class: "mt-6 mb-2",
+                block: "",
+                variant: "tonal",
+                onClick: ($event) => applyPersistenceSettings()
+              }, {
+                default: withCtx(() => [
+                  createTextVNode(" Apply Persistence Settings ")
+                ]),
+                _: 1
+              }, 8, ["onClick"]),
+              createVNode(VBtn, {
+                class: "mb-8",
+                block: "",
+                color: "secondary",
+                variant: "text",
+                onClick: ($event) => resetToDefaults()
+              }, {
+                default: withCtx(() => [
+                  createTextVNode(" Reset To Defaults ")
+                ]),
+                _: 1
+              }, 8, ["onClick"]),
+              createVNode(VCardActions, { class: "px-0 mb-8" }, {
+                default: withCtx(() => [
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    "prepend-icon": "mdi-arrow-left",
+                    to: "/get-started/application"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode("Back")
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VSpacer),
+                  createVNode(VBtn, {
+                    variant: "tonal",
+                    color: "primary",
+                    "append-icon": "mdi-arrow-right",
+                    to: "/get-started/behaviour/eventing"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode(" Next ")
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ];
+          }
+        }),
+        _: 1
+      }, _parent));
+    };
+  }
+});
+const _sfc_setup = _sfc_main.setup;
+_sfc_main.setup = (props, ctx) => {
+  const ssrContext = useSSRContext();
+  (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("pages/get-started/behaviour/persistence.vue");
+  return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
+};
+
+export { _sfc_main as default };
+//# sourceMappingURL=persistence-DNXMZK3b.mjs.map

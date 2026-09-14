@@ -1,0 +1,4 @@
+const AppFooter_vue_vue_type_style_index_0_scoped_b023631d_lang = ".social-link[data-v-b023631d] .v-icon{color:rgba(var(--v-theme-on-background),var(--v-disabled-opacity));text-decoration:none;transition:.2s ease-in-out}.social-link[data-v-b023631d] .v-icon:hover{color:#1976d2}";
+
+export { AppFooter_vue_vue_type_style_index_0_scoped_b023631d_lang as A };
+//# sourceMappingURL=default-styles-4.mjs-BfxcV_1h.mjs.map

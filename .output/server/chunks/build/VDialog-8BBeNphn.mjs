@@ -1,0 +1,97 @@
+import { ref, watch, nextTick, mergeProps, createVNode } from 'vue';
+import { a5 as genericComponent, bo as useProxiedModel, by as useScopeId, bp as useRender, p as VOverlay, l as VDefaultsProvider, a3 as forwardRefs, aV as propsFactory, aR as omit, aJ as makeVOverlayProps } from './server.mjs';
+import { V as VDialogTransition } from './ssrBoot-BRsRdwag.mjs';
+
+const makeVDialogProps = propsFactory({
+  fullscreen: Boolean,
+  scrollable: Boolean,
+  ...omit(makeVOverlayProps({
+    captureFocus: true,
+    origin: "center center",
+    scrollStrategy: "block",
+    transition: {
+      component: VDialogTransition
+    },
+    zIndex: 2400,
+    retainFocus: true
+  }), ["disableInitialFocus"])
+}, "VDialog");
+const VDialog = genericComponent()({
+  name: "VDialog",
+  props: makeVDialogProps(),
+  emits: {
+    "update:modelValue": (value) => true,
+    afterEnter: () => true,
+    afterLeave: () => true
+  },
+  setup(props, {
+    emit,
+    slots
+  }) {
+    const isActive = useProxiedModel(props, "modelValue");
+    const {
+      scopeId
+    } = useScopeId();
+    const overlay = ref();
+    function onAfterEnter() {
+      emit("afterEnter");
+      if ((props.scrim || props.retainFocus) && overlay.value?.contentEl && !overlay.value.contentEl.contains((void 0).activeElement)) {
+        overlay.value.contentEl.focus({
+          preventScroll: true
+        });
+      }
+    }
+    function onAfterLeave() {
+      emit("afterLeave");
+    }
+    watch(isActive, async (val) => {
+      if (!val) {
+        await nextTick();
+        overlay.value.activatorEl?.focus({
+          preventScroll: true
+        });
+      }
+    });
+    useRender(() => {
+      const overlayProps = VOverlay.filterProps(props);
+      const activatorProps = mergeProps({
+        "aria-haspopup": "dialog"
+      }, props.activatorProps);
+      const contentProps = mergeProps({
+        tabindex: -1
+      }, props.contentProps);
+      return createVNode(VOverlay, mergeProps({
+        "ref": overlay,
+        "class": ["v-dialog", {
+          "v-dialog--fullscreen": props.fullscreen,
+          "v-dialog--scrollable": props.scrollable
+        }, props.class],
+        "style": props.style
+      }, overlayProps, {
+        "modelValue": isActive.value,
+        "onUpdate:modelValue": ($event) => isActive.value = $event,
+        "aria-modal": "true",
+        "activatorProps": activatorProps,
+        "contentProps": contentProps,
+        "height": !props.fullscreen ? props.height : void 0,
+        "width": !props.fullscreen ? props.width : void 0,
+        "maxHeight": !props.fullscreen ? props.maxHeight : void 0,
+        "maxWidth": !props.fullscreen ? props.maxWidth : void 0,
+        "role": "dialog",
+        "onAfterEnter": onAfterEnter,
+        "onAfterLeave": onAfterLeave
+      }, scopeId), {
+        activator: slots.activator,
+        default: (...args) => createVNode(VDefaultsProvider, {
+          "root": "VDialog"
+        }, {
+          default: () => [slots.default?.(...args)]
+        })
+      });
+    });
+    return forwardRefs({}, overlay);
+  }
+});
+
+export { VDialog as V };
+//# sourceMappingURL=VDialog-8BBeNphn.mjs.map
