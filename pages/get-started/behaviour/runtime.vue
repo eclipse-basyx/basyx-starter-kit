@@ -177,6 +177,24 @@
                 persistent-hint
               />
               <v-number-input
+                v-model="paginationDefaultLimit"
+                label="Default page size"
+                :min="1"
+                variant="solo-filled"
+                control-variant="stacked"
+                hint="Page size when a request omits limit (SERVER_PAGINATION_DEFAULT_LIMIT)."
+                persistent-hint
+              />
+              <v-number-input
+                v-model="paginationMaxLimit"
+                label="Maximum page size"
+                :min="1"
+                variant="solo-filled"
+                control-variant="stacked"
+                hint="Larger limits are rejected with HTTP 400, including the Event Feed (SERVER_PAGINATION_MAX_LIMIT)."
+                persistent-hint
+              />
+              <v-number-input
                 v-model="uploadMaxMiB"
                 label="Maximum upload size (MiB)"
                 :min="1"
@@ -290,6 +308,8 @@ const DEFAULTS = {
   writeTimeout: 300,
   idleTimeout: 60,
   shutdownTimeout: 10,
+  paginationDefaultLimit: 100,
+  paginationMaxLimit: 1000,
   corsOrigins: '*',
   corsMethods: 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
   corsHeaders: '*',
@@ -327,6 +347,8 @@ const readTimeout = ref(DEFAULTS.readTimeout);
 const writeTimeout = ref(DEFAULTS.writeTimeout);
 const idleTimeout = ref(DEFAULTS.idleTimeout);
 const shutdownTimeout = ref(DEFAULTS.shutdownTimeout);
+const paginationDefaultLimit = ref(DEFAULTS.paginationDefaultLimit);
+const paginationMaxLimit = ref(DEFAULTS.paginationMaxLimit);
 const corsOrigins = ref(DEFAULTS.corsOrigins);
 const corsMethods = ref(DEFAULTS.corsMethods);
 const corsHeaders = ref(DEFAULTS.corsHeaders);
@@ -382,6 +404,14 @@ function syncFromCompose(): void {
   writeTimeout.value = envNumber(env.SERVER_WRITE_TIMEOUT_SECONDS, DEFAULTS.writeTimeout);
   idleTimeout.value = envNumber(env.SERVER_IDLE_TIMEOUT_SECONDS, DEFAULTS.idleTimeout);
   shutdownTimeout.value = envNumber(env.SERVER_SHUTDOWN_TIMEOUT_SECONDS, DEFAULTS.shutdownTimeout);
+  paginationDefaultLimit.value = envNumber(
+    env.SERVER_PAGINATION_DEFAULT_LIMIT,
+    DEFAULTS.paginationDefaultLimit
+  );
+  paginationMaxLimit.value = envNumber(
+    env.SERVER_PAGINATION_MAX_LIMIT,
+    DEFAULTS.paginationMaxLimit
+  );
   corsOrigins.value = env.CORS_ALLOWEDORIGINS || DEFAULTS.corsOrigins;
   corsMethods.value = env.CORS_ALLOWEDMETHODS || DEFAULTS.corsMethods;
   corsHeaders.value = env.CORS_ALLOWEDHEADERS || DEFAULTS.corsHeaders;
@@ -441,6 +471,10 @@ function applySettings(): void {
       SERVER_WRITE_TIMEOUT_SECONDS: String(Math.max(1, writeTimeout.value)),
       SERVER_IDLE_TIMEOUT_SECONDS: String(Math.max(1, idleTimeout.value)),
       SERVER_SHUTDOWN_TIMEOUT_SECONDS: String(Math.max(1, shutdownTimeout.value)),
+      SERVER_PAGINATION_DEFAULT_LIMIT: String(Math.max(1, paginationDefaultLimit.value)),
+      SERVER_PAGINATION_MAX_LIMIT: String(
+        Math.max(paginationDefaultLimit.value, paginationMaxLimit.value, 1)
+      ),
       CORS_ALLOWEDORIGINS: corsOrigins.value.trim() || DEFAULTS.corsOrigins,
       CORS_ALLOWEDMETHODS: corsMethods.value.trim() || DEFAULTS.corsMethods,
       CORS_ALLOWEDHEADERS: corsHeaders.value.trim() || DEFAULTS.corsHeaders,
@@ -484,6 +518,8 @@ function resetToDefaults(): void {
   writeTimeout.value = DEFAULTS.writeTimeout;
   idleTimeout.value = DEFAULTS.idleTimeout;
   shutdownTimeout.value = DEFAULTS.shutdownTimeout;
+  paginationDefaultLimit.value = DEFAULTS.paginationDefaultLimit;
+  paginationMaxLimit.value = DEFAULTS.paginationMaxLimit;
   corsOrigins.value = DEFAULTS.corsOrigins;
   corsMethods.value = DEFAULTS.corsMethods;
   corsHeaders.value = DEFAULTS.corsHeaders;

@@ -22,10 +22,10 @@
       class="my-4"
     />
     <v-expansion-panels v-if="feedEnabled" class="setup-config-panels mb-6">
-      <v-expansion-panel title="Advanced feed retention and paging">
+      <v-expansion-panel title="Advanced feed retention">
         <v-expansion-panel-text>
           <v-row density="compact">
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="6">
               <v-number-input
                 v-model="feedMaxAgeDays"
                 label="Visible age (days)"
@@ -33,19 +33,11 @@
                 variant="solo-filled"
               />
             </v-col>
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="6">
               <v-number-input
                 v-model="feedGraceDays"
                 label="Hard-delete grace (days)"
                 :min="0"
-                variant="solo-filled"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-number-input
-                v-model="feedMaxPageSize"
-                label="Maximum page size"
-                :min="1"
                 variant="solo-filled"
               />
             </v-col>
@@ -239,7 +231,6 @@ const sinkOptions = [
 const feedEnabled = ref(false);
 const feedMaxAgeDays = ref(30);
 const feedGraceDays = ref(10);
-const feedMaxPageSize = ref(100);
 const sink = ref<EventSink>('none');
 const includeLocalBroker = ref(true);
 const topicPrefix = ref('basyx');
@@ -279,7 +270,6 @@ function syncFromCompose(): void {
   feedEnabled.value = envBoolean(env.BASYX_EVENTING_FEED_ENABLED);
   feedMaxAgeDays.value = envNumber(env.BASYX_EVENTING_FEED_MAX_AGE_DAYS, 30);
   feedGraceDays.value = envNumber(env.BASYX_EVENTING_FEED_HARD_DELETE_GRACE_DAYS, 10);
-  feedMaxPageSize.value = envNumber(env.BASYX_EVENTING_FEED_MAX_PAGE_SIZE, 100);
   const configuredSink = env.BASYX_EVENTING_SINKS?.split(',')[0];
   sink.value =
     configuredSink === 'mqtt' || configuredSink === 'kafka' || configuredSink === 'amqp'
@@ -347,7 +337,6 @@ function applySettings(): void {
   if (feedEnabled.value) {
     values.BASYX_EVENTING_FEED_MAX_AGE_DAYS = String(Math.max(1, feedMaxAgeDays.value));
     values.BASYX_EVENTING_FEED_HARD_DELETE_GRACE_DAYS = String(Math.max(0, feedGraceDays.value));
-    values.BASYX_EVENTING_FEED_MAX_PAGE_SIZE = String(Math.max(1, feedMaxPageSize.value));
   }
   if (sink.value !== 'none') {
     values.BASYX_EVENTING_SINKS = sink.value;
@@ -437,7 +426,6 @@ function resetToDefaults(): void {
   feedEnabled.value = false;
   feedMaxAgeDays.value = 30;
   feedGraceDays.value = 10;
-  feedMaxPageSize.value = 100;
   sink.value = 'none';
   topicPrefix.value = 'basyx';
   mqttBroker.value = 'mqtt://mqtt:1883';
