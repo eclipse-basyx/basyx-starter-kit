@@ -98,6 +98,32 @@ describe('BaSyx Go configuration pages', () => {
     expect(environment().CORS_ALLOWCREDENTIALS).toBe('true');
   });
 
+  it('writes pagination limits and keeps the maximum at or above the default', async () => {
+    expect(environment().SERVER_PAGINATION_DEFAULT_LIMIT).toBe('100');
+    expect(environment().SERVER_PAGINATION_MAX_LIMIT).toBe('1000');
+
+    const wrapper = mount(RuntimePage, { global: { stubs: globalStubs } });
+    await wrapper.find('input[data-label="Default page size"]').setValue('50');
+    await wrapper.find('input[data-label="Maximum page size"]').setValue('20');
+    await applyButton(wrapper, 'Apply Runtime Settings')?.trigger('click');
+    await nextTick();
+
+    expect(environment().SERVER_PAGINATION_DEFAULT_LIMIT).toBe('50');
+    expect(environment().SERVER_PAGINATION_MAX_LIMIT).toBe('50');
+  });
+
+  it('drops the removed Event Feed maximum page size when applying eventing settings', async () => {
+    useAppStore().updateServiceEnvironment('aas-environment', {
+      BASYX_EVENTING_FEED_MAX_PAGE_SIZE: '25',
+    });
+
+    const wrapper = mount(EventingPage, { global: { stubs: globalStubs } });
+    await applyButton(wrapper, 'Apply Eventing Settings')?.trigger('click');
+    await nextTick();
+
+    expect(environment().BASYX_EVENTING_FEED_MAX_PAGE_SIZE).toBeUndefined();
+  });
+
   it('restores and resets the delegated operation response limit', async () => {
     expect(environment().GENERAL_DELEGATEDOPERATIONRESPONSEMAXSIZEBYTES).toBe('1048576');
     useAppStore().updateServiceEnvironment('aas-environment', {

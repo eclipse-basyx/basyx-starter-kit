@@ -668,6 +668,8 @@ function createDefaultDockerComposeConfig(
             'SERVER_WRITE_TIMEOUT_SECONDS=300',
             'SERVER_IDLE_TIMEOUT_SECONDS=60',
             'SERVER_SHUTDOWN_TIMEOUT_SECONDS=10',
+            'SERVER_PAGINATION_DEFAULT_LIMIT=100',
+            'SERVER_PAGINATION_MAX_LIMIT=1000',
             'CORS_ALLOWEDORIGINS=*',
             'CORS_ALLOWEDHEADERS=*',
             'CORS_ALLOWCREDENTIALS=true',
