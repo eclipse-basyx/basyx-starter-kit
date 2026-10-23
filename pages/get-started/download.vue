@@ -82,12 +82,18 @@
 import JSZip from 'jszip';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useAppStore } from '@/stores/app';
+import { addAasSuiteAssets } from '@/utils/aasSuiteAssets';
 import { readServiceEnvironment } from '@/utils/dockerEnvironment';
 import { getComposeServices } from '@/utils/optionalServices';
+import { createPgAdminServersJson } from '@/utils/pgAdminServers';
 import { generateRsaPrivateKeyPem } from '@/utils/rsaKey';
 import { addOptionalSetupAssets } from '@/utils/setupAssets';
 import { createSetupReadme } from '@/utils/setupReadme';
 import { buildShareConfigUrl } from '@/utils/shareConfig';
+import {
+  loadThirdPartyServiceCatalog,
+  validateThirdPartyServices,
+} from '@/utils/thirdPartyServices';
 
 defineOptions({
   name: 'Download',
@@ -133,13 +139,22 @@ function updateShareConfigLink(): void {
 }
 
 function createReadme(): void {
-  readmeFile.value = createSetupReadme({
-    externalBaseUrl: appStore.getExternalBaseUrl,
-    aasEnvironmentExternalPort: appStore.getContainerPort('aas-environment'),
-    aasEnvironmentContextPath: appStore.getContextPath('aas-environment'),
-    aasUiExternalPort: appStore.getContainerPort('aas-ui'),
-    aasUiBasePath: appStore.getContextPath('aas-ui'),
-  });
+  const thirdPartyServices = appStore.getThirdPartyServices;
+  const additionalServicesNote = thirdPartyServices.length
+    ? `\n## Additional services\n\nThis setup also starts: ${thirdPartyServices
+        .map(service => `\`${service.id}\``)
+        .join(
+          ', '
+        )}. Review their configuration in \`docker-compose.yml\` before starting the stack.\n`
+    : '';
+  readmeFile.value =
+    createSetupReadme({
+      externalBaseUrl: appStore.getExternalBaseUrl,
+      aasEnvironmentExternalPort: appStore.getContainerPort('aas-environment'),
+      aasEnvironmentContextPath: appStore.getContextPath('aas-environment'),
+      aasUiExternalPort: appStore.getContainerPort('aas-ui'),
+      aasUiBasePath: appStore.getContextPath('aas-ui'),
+    }) + additionalServicesNote;
 }
 
 async function downloadAsZip(): Promise<void> {
@@ -176,6 +191,23 @@ async function downloadAsZip(): Promise<void> {
   }
 
   try {
+    const catalog = appStore.getThirdPartyServices.length
+      ? await loadThirdPartyServiceCatalog()
+      : [];
+    const refreshErrors = appStore.refreshThirdPartyServices(catalog);
+    const additionalErrors = [
+      ...refreshErrors,
+      ...validateThirdPartyServices(
+        catalog,
+        appStore.getThirdPartyServices,
+        getComposeServices() || {},
+        appStore.thirdPartyArchitecture
+      ),
+    ];
+    if (additionalErrors.length) {
+      downloadError.value = `Review Additional Services and Container Config before downloading: ${additionalErrors.join(' ')}`;
+      return;
+    }
     const privateKeyPem = await generateRsaPrivateKeyPem();
     const zip = new JSZip();
 
@@ -202,21 +234,36 @@ async function downloadAsZip(): Promise<void> {
     const adminPassword = passwordBytes
       ? Array.from(passwordBytes, byte => byte.toString(16).padStart(2, '0')).join('')
       : undefined;
-    const supplementalReadme = addOptionalSetupAssets(zip, {
-      services,
-      environment,
-      policyJson: appStore.accessPolicyJson,
-      trustListJson: appStore.trustListJson,
-      uiUrl: appStore.getAasWebUiExternalUrl,
-      uiClientId: selectedInfra?.security?.config?.clientId || 'basyx-ui',
-      adminPassword,
-    });
+    const aasSuiteReadme = addAasSuiteAssets(zip, services);
+    const supplementalReadme =
+      aasSuiteReadme +
+      addOptionalSetupAssets(zip, {
+        services,
+        environment,
+        policyJson: appStore.accessPolicyJson,
+        trustListJson: appStore.trustListJson,
+        uiUrl: appStore.getAasWebUiExternalUrl,
+        uiClientId: selectedInfra?.security?.config?.clientId || 'basyx-ui',
+        adminPassword,
+      });
 
     if (services.telegraf) {
       const telegrafFolder = zip.folder('telegraf');
       if (telegrafConfigStore.value) {
         telegrafFolder?.file('telegraf.conf', telegrafConfigStore.value);
       }
+    }
+
+    if (services.pgadmin) {
+      const pgAdminFolder = zip.folder('pgadmin');
+      pgAdminFolder?.file(
+        'servers.json',
+        createPgAdminServersJson(
+          services.db
+            ? readServiceEnvironment(appStore.getDockerComposeConfig?.value, 'db')
+            : undefined
+        )
+      );
     }
 
     if (logoLightStore.value || logoDarkStore.value || iconStore.value) {

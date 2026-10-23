@@ -9,7 +9,7 @@ export const CONFIG_HASH_VERSION = 'v1';
 export const CONFIG_URL_WARNING_LENGTH = 6000;
 
 const SENSITIVE_KEY_PATTERN =
-  /(password|(?:^|[_-])pass(?:$|[_-])|token|secret|private.?key|api[-_]?key|credential)/i;
+  /(password|(?:^|[_-])pass(?:$|[_-])|token|secret|private.?key|api[-_]?key|credential|salt|connectionstrings?)/i;
 
 export interface PersistedConfigPayloadV1 {
   route: string;
@@ -26,7 +26,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isSensitiveKey(key: string): boolean {
+export function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_PATTERN.test(key);
 }
 

@@ -1,6 +1,8 @@
 // Utilities
+import type { ComposeService } from '@/utils/optionalServices';
 import * as yaml from 'js-yaml';
 import { defineStore } from 'pinia';
+import { replacePublishedPort } from '@/utils/composePorts';
 import { readServiceEnvironment } from '@/utils/dockerEnvironment';
 import {
   buildAasEnvironmentExternalUrl,
@@ -15,7 +17,19 @@ import {
   replaceExplicitUrlPort,
   replaceUrlPath,
 } from '@/utils/externalUrls';
+import { mergeGeneratedConfig } from '@/utils/mergeGeneratedConfig';
 import { DEFAULT_POLICY, defaultTrustList } from '@/utils/securitySetup';
+import {
+  buildThirdPartyServiceCompose,
+  resolveThirdPartyServiceReferences,
+  thirdPartyManagedServiceIds,
+  type ThirdPartyService,
+} from '@/utils/thirdPartyServices';
+import {
+  compactThirdPartySnapshot,
+  expandThirdPartySnapshot,
+  type ThirdPartyServiceOverrides,
+} from '@/utils/thirdPartySnapshots';
 import { getHttpOrigin, parseTrustedOrigin } from '@/utils/trustedOrigins';
 
 interface ContainerPort {
@@ -62,7 +76,14 @@ export interface ExternalInfluxSettings {
   token: string;
 }
 
+export interface ThirdPartyServiceSelection {
+  id: string;
+  values: Record<string, string | number | boolean>;
+}
+
 interface DockerComposeService {
+  image?: string;
+  container_name?: string;
   ports?: string[];
   environment?: Record<string, string> | string[];
 }
@@ -93,6 +114,10 @@ export interface SerializableStarterState {
   basyxInfraConfig?: ConfigObject;
   managedInfluxDbOrigin?: ManagedInfluxDbOrigin;
   localInfluxDbOriginOptOutKey?: string;
+  thirdPartyServices?: ThirdPartyServiceSelection[];
+  thirdPartyArchitecture?: 'amd64' | 'arm64';
+  thirdPartyServiceDefaults?: Record<string, DockerComposeService>;
+  thirdPartyServiceOverrides?: ThirdPartyServiceOverrides;
 }
 
 function cloneSerializable<T>(value: T): T {
@@ -264,6 +289,22 @@ function isContextPathArray(value: unknown): value is ContextPath[] {
         typeof item === 'object' &&
         typeof item.id === 'string' &&
         (item.contextPath === undefined || typeof item.contextPath === 'string')
+    )
+  );
+}
+
+function isThirdPartyServiceSelectionArray(value: unknown): value is ThirdPartyServiceSelection[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      item =>
+        isRecord(item) &&
+        typeof item.id === 'string' &&
+        isRecord(item.values) &&
+        Object.values(item.values).every(
+          value =>
+            typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+        )
     )
   );
 }
@@ -599,9 +640,7 @@ function setDockerComposeServicePort(
   if (!currentMapping) {
     return;
   }
-  const parts = currentMapping.split(':');
-  const internal = parts.length >= 2 ? parts[1] : String(port);
-  service.ports[0] = `${port}:${internal}`;
+  service.ports[0] = replacePublishedPort(currentMapping, port);
 }
 
 function setDockerComposeServiceContextPath(
@@ -980,6 +1019,9 @@ function initialState() {
     managedInfluxDbOrigin: undefined as ManagedInfluxDbOrigin | undefined,
     localInfluxDbOriginOptOutKey: undefined as string | undefined,
     localInfluxDbWasPresent: false,
+    thirdPartyServices: [] as ThirdPartyServiceSelection[],
+    thirdPartyServiceDefaults: {} as Record<string, DockerComposeService>,
+    thirdPartyArchitecture: undefined as 'amd64' | 'arm64' | undefined,
 
     // legacy config slots (kept to avoid breakage while migrating pages)
     aasEnvConfig: undefined as ConfigObject | undefined,
@@ -1049,6 +1091,7 @@ export const useAppStore = defineStore('app', {
     getTelegrafConf: state => state.telegrafConf,
     getAasFiles: state => state.aasFiles,
     getBasyxConfig: state => state.basyxConfig,
+    getThirdPartyServices: state => state.thirdPartyServices,
     getSelectedOutput: state => state.selectedOutput,
     getSelectedOutputConfig: state => state.selectedOutputConfig,
 
@@ -1256,6 +1299,77 @@ export const useAppStore = defineStore('app', {
         this.localInfluxDbOriginOptOutKey = undefined;
       }
       this.syncManagedLocalInfluxDbOrigin();
+    },
+    refreshThirdPartyServices(catalog: ThirdPartyService[]): string[] {
+      const config = this.dockerComposeConfig?.value;
+      if (!isRecord(config) || !isRecord(config.services)) return [];
+      const resolution = resolveThirdPartyServiceReferences(
+        catalog,
+        Object.fromEntries(
+          this.thirdPartyServices.map(selection => [selection.id, selection.values])
+        ),
+        config.services as Record<string, ComposeService>
+      );
+      if (resolution.errors.length) return resolution.errors;
+      const additions = Object.assign(
+        {},
+        ...this.thirdPartyServices.flatMap(selection => {
+          const service = catalog.find(service => service.id === selection.id);
+          return service
+            ? [buildThirdPartyServiceCompose(service, resolution.values[service.id] || {})]
+            : [];
+        })
+      );
+      this.setThirdPartyServices(
+        this.thirdPartyServices,
+        additions,
+        thirdPartyManagedServiceIds(catalog)
+      );
+      return [];
+    },
+    setThirdPartyServices(
+      selections: ThirdPartyServiceSelection[],
+      additions: Record<string, DockerComposeService>,
+      managedServiceIds: string[]
+    ) {
+      const current = this.dockerComposeConfig;
+      if (!current || !isRecord(current.value) || !isRecord(current.value.services)) return;
+      const updated = cloneSerializable(current);
+      if (!isRecord(updated.value) || !isRecord(updated.value.services)) return;
+      const existing = updated.value.services as Record<string, DockerComposeService>;
+      updated.value.services = {
+        ...Object.fromEntries(
+          Object.entries(existing).filter(([serviceId]) => !managedServiceIds.includes(serviceId))
+        ),
+        ...Object.fromEntries(
+          Object.entries(additions).map(([id, service]) => [
+            id,
+            mergeGeneratedConfig(
+              existing[id],
+              this.thirdPartyServiceDefaults[id],
+              cloneSerializable(service)
+            ),
+          ])
+        ),
+      };
+      this.thirdPartyServiceDefaults = cloneSerializable(additions);
+      this.thirdPartyServices = cloneSerializable(selections);
+      const thirdPartyOutput: BasyxConfigItem | undefined = Object.keys(additions).length
+        ? {
+            id: 'comp-third-party-services',
+            title: 'Additional Services',
+            children: Object.keys(additions).map(serviceId => ({
+              id: `cfg-third-party-${serviceId}`,
+              title: serviceId,
+              type: 'config',
+            })),
+          }
+        : undefined;
+      this.basyxConfig = [
+        ...this.basyxConfig.filter(item => item.id !== 'comp-third-party-services'),
+        ...(thirdPartyOutput ? [thirdPartyOutput] : []),
+      ];
+      this.setDockerComposeConfig(updated);
     },
     setBasyxGoImageTag(serviceName: BasyxGoServiceName, tag: string) {
       if (!this.dockerComposeConfig) return;
@@ -1530,38 +1644,43 @@ export const useAppStore = defineStore('app', {
       }
     },
     createSerializableSnapshot(): SerializableStarterState {
-      return cloneSerializable({
-        registryIntegration: this.registryIntegration,
-        discoveryIntegration: this.discoveryIntegration,
-        externalBaseUrl: this.externalBaseUrl,
-        mqtt: this.mqtt,
-        timeSeriesData: this.timeSeriesData,
-        includeTelegraf: this.includeTelegraf,
-        includeLocalInfluxDb: this.includeLocalInfluxDb,
-        externalInfluxSettings: this.externalInfluxSettings,
-        userInterface: this.userInterface,
-        dashboard: this.dashboard,
-        aasDiscovery: this.aasDiscovery,
-        syncBranding: this.syncBranding,
-        customColor: this.customColor,
-        lightPrimaryColor: this.lightPrimaryColor,
-        darkPrimaryColor: this.darkPrimaryColor,
-        containerPorts: this.containerPorts,
-        containerNames: this.containerNames,
-        contextPathes: this.contextPathes,
-        basyxConfig: this.basyxConfig,
-        dockerComposeConfig: this.dockerComposeConfig,
-        basyxInfraConfig: this.basyxInfraConfig,
-        managedInfluxDbOrigin: this.managedInfluxDbOrigin,
-        localInfluxDbOriginOptOutKey: this.localInfluxDbOriginOptOutKey,
-      });
+      return compactThirdPartySnapshot(
+        cloneSerializable({
+          registryIntegration: this.registryIntegration,
+          discoveryIntegration: this.discoveryIntegration,
+          externalBaseUrl: this.externalBaseUrl,
+          mqtt: this.mqtt,
+          timeSeriesData: this.timeSeriesData,
+          includeTelegraf: this.includeTelegraf,
+          includeLocalInfluxDb: this.includeLocalInfluxDb,
+          externalInfluxSettings: this.externalInfluxSettings,
+          userInterface: this.userInterface,
+          dashboard: this.dashboard,
+          aasDiscovery: this.aasDiscovery,
+          syncBranding: this.syncBranding,
+          customColor: this.customColor,
+          lightPrimaryColor: this.lightPrimaryColor,
+          darkPrimaryColor: this.darkPrimaryColor,
+          containerPorts: this.containerPorts,
+          containerNames: this.containerNames,
+          contextPathes: this.contextPathes,
+          basyxConfig: this.basyxConfig,
+          dockerComposeConfig: this.dockerComposeConfig,
+          basyxInfraConfig: this.basyxInfraConfig,
+          managedInfluxDbOrigin: this.managedInfluxDbOrigin,
+          localInfluxDbOriginOptOutKey: this.localInfluxDbOriginOptOutKey,
+          thirdPartyServices: this.thirdPartyServices,
+          thirdPartyServiceDefaults: this.thirdPartyServiceDefaults,
+          thirdPartyArchitecture: this.thirdPartyArchitecture,
+        })
+      );
     },
     applySerializableSnapshot(snapshot: unknown) {
       if (!snapshot || typeof snapshot !== 'object') {
         return;
       }
 
-      const data = snapshot as Record<string, unknown>;
+      const data = expandThirdPartySnapshot(snapshot as Record<string, unknown>);
 
       const booleanKeys = [
         'registryIntegration',
@@ -1599,6 +1718,17 @@ export const useAppStore = defineStore('app', {
       }
       if (isContextPathArray(data.contextPathes)) {
         this.contextPathes = cloneSerializable(data.contextPathes);
+      }
+      if (isRecord(data.thirdPartyServiceDefaults)) {
+        this.thirdPartyServiceDefaults = cloneSerializable(
+          data.thirdPartyServiceDefaults
+        ) as Record<string, DockerComposeService>;
+      }
+      if (data.thirdPartyArchitecture === 'amd64' || data.thirdPartyArchitecture === 'arm64') {
+        this.thirdPartyArchitecture = data.thirdPartyArchitecture;
+      }
+      if (isThirdPartyServiceSelectionArray(data.thirdPartyServices)) {
+        this.thirdPartyServices = cloneSerializable(data.thirdPartyServices);
       }
       if (isBasyxConfigArray(data.basyxConfig)) {
         const defaults = initialState();
@@ -1692,6 +1822,8 @@ export const useAppStore = defineStore('app', {
       const containerPort = this.containerPorts.find(item => item.id === serviceName);
       if (containerPort) {
         containerPort.port = port;
+      } else {
+        this.containerPorts.push({ id: serviceName, port });
       }
       if (
         this.dockerComposeConfig?.value &&
@@ -1714,6 +1846,8 @@ export const useAppStore = defineStore('app', {
       const containerName = this.containerNames.find(item => item.id === serviceName);
       if (containerName) {
         containerName.name = name;
+      } else {
+        this.containerNames.push({ id: serviceName, name });
       }
     },
     setContextPath(serviceName: string, contextPath: string | undefined) {
