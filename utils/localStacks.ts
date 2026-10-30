@@ -4,6 +4,17 @@ export type BrokerKind = 'mqtt' | 'kafka' | 'amqp' | 'none';
 
 export const BROKER_SERVICE_NAMES = ['mqtt', 'kafka', 'kafka-init', 'rabbitmq'];
 
+// Reads the credentials from the container environment so the check follows the configured
+// database and user instead of probing a hardcoded name.
+export function postgresHealthcheck(): Record<string, unknown> {
+  return {
+    test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'],
+    interval: '10s',
+    timeout: '5s',
+    retries: 5,
+  };
+}
+
 export function localPostgresService(
   user: string,
   password: string,
@@ -14,12 +25,7 @@ export function localPostgresService(
     image: 'postgres:18',
     environment: { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_DB: database },
     command: ['postgres', '-c', 'listen_addresses=*'],
-    healthcheck: {
-      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'],
-      interval: '10s',
-      timeout: '5s',
-      retries: 5,
-    },
+    healthcheck: postgresHealthcheck(),
     restart: 'unless-stopped',
   };
 }

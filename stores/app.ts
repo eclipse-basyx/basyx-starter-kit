@@ -17,6 +17,7 @@ import {
   replaceExplicitUrlPort,
   replaceUrlPath,
 } from '@/utils/externalUrls';
+import { localPostgresService } from '@/utils/localStacks';
 import { mergeGeneratedConfig } from '@/utils/mergeGeneratedConfig';
 import { DEFAULT_POLICY, defaultTrustList } from '@/utils/securitySetup';
 import {
@@ -767,23 +768,7 @@ function createDefaultDockerComposeConfig(
           },
           restart: 'unless-stopped',
         },
-        db: {
-          container_name: 'postgres_db',
-          image: 'postgres:18',
-          environment: {
-            POSTGRES_USER: 'admin',
-            POSTGRES_PASSWORD: 'admin123',
-            POSTGRES_DB: 'basyxTestDB',
-          },
-          command: ['postgres', '-c', 'listen_addresses=*'],
-          healthcheck: {
-            test: ['CMD-SHELL', 'pg_isready -U admin -d basyxTestDB'],
-            interval: '10s',
-            timeout: '5s',
-            retries: 5,
-          },
-          restart: 'unless-stopped',
-        },
+        db: localPostgresService('admin', 'admin123', 'basyxTestDB'),
         basyx_configuration: {
           container_name: 'basyx_configuration',
           image: 'eclipsebasyx/basyxconfigurationservice-go:latest',
