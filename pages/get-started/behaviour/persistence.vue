@@ -236,10 +236,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '@/stores/app';
-import { localPostgresService } from '@/utils/localStacks';
+import { localPostgresService, postgresHealthcheck } from '@/utils/localStacks';
 
 interface DockerService {
   environment?: Record<string, string> | string[];
+  healthcheck?: Record<string, unknown>;
 }
 
 defineOptions({
@@ -466,6 +467,8 @@ function applyPersistenceSettings(): void {
     postgresService.environment.POSTGRES_USER = values.user;
     postgresService.environment.POSTGRES_PASSWORD = values.password;
     postgresService.environment.POSTGRES_DB = values.dbName;
+    // Replaces healthchecks from older configs that hardcoded the default database and user.
+    postgresService.healthcheck = postgresHealthcheck();
   }
 
   if (includeLocalDatabase.value) {
