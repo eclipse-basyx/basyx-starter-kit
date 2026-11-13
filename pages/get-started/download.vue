@@ -32,8 +32,7 @@
     <template v-if="mcpSettings.enabled">
       <p class="text-normalText mt-3 mb-2 text-subtitle-1">
         Connect an MCP client to the experimental MCP endpoint at
-        <code class="text-subheader">{{ mcpSettings.url }}</code
-        >:
+        <code class="text-subheader">{{ mcpSettings.url }}</code>:
       </p>
       <v-alert color="primary" variant="outlined" class="bg-alertCard mb-8">
         <div v-for="item in mcpCommands" :key="item.client" class="mb-1">

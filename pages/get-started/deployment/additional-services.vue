@@ -139,8 +139,7 @@
               <p class="text-caption text-medium-emphasis mb-4">
                 Text settings can reference selected services, for example
                 <code v-pre>{{ services.redis.host }}</code> or
-                <code v-pre>{{ services.redis.config.database }}</code
-                >.
+                <code v-pre>{{ services.redis.config.database }}</code>.
               </p>
               <v-row density="compact">
                 <v-col

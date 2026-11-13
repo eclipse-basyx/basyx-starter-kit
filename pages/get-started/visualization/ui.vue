@@ -101,10 +101,10 @@
               browser-accessible origin.
             </template>
             <template v-else-if="configuredInfluxOrigin">
-              The configured InfluxDB origin is <code>{{ configuredInfluxOrigin }}</code
-              >. Add it below if it is also reachable from the browser; otherwise enter the
-              browser-accessible origin above. <code>INFLUXDB_TOKEN</code> authenticates
-              LinkedSegment requests, but does not make their destination trusted.
+              The configured InfluxDB origin is <code>{{ configuredInfluxOrigin }}</code>. Add it
+              below if it is also reachable from the browser; otherwise enter the browser-accessible
+              origin above. <code>INFLUXDB_TOKEN</code> authenticates LinkedSegment requests, but
+              does not make their destination trusted.
             </template>
             <template v-else>
               Enter the browser-accessible InfluxDB origin above. It may differ from the URL that
