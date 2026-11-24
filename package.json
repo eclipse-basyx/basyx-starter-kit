@@ -50,7 +50,7 @@
     "eslint-plugin-vue": "^10.12.1",
     "happy-dom": "^21.0.4",
     "pinia": "^4.1.0",
-    "pnpm": "12.21.0",
+    "pnpm": "12.23.0",
     "prettier": "^3.10.1",
     "sass": "^1.108.2",
     "typescript": "^6.0.3",
